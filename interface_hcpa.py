@@ -9,15 +9,22 @@ st.set_page_config(page_title="Gestão de Caixas - HCPA", page_icon="📦")
 
 @st.cache_resource
 def conectar():
-    # Puxa o dicionário dos Secrets do Streamlit Cloud
+    # Puxa o dicionário dos Secrets
     info = dict(st.secrets["gcp_service_account"])
     
-    # Decodifica a Base64 de volta para a chave original
-    chave_limpa = info["private_key"].replace('"', '').strip()
-    chave_recuperada = base64.b64decode(chave_limpa).decode()
+    # --- LIMPEZA TOTAL DA CHAVE ---
+    # Remove aspas duplas, aspas simples, espaços e quebras de linha
+    chave_crua = info["private_key"]
+    chave_limpa = chave_crua.replace('"', '').replace("'", "").replace("\n", "").replace(" ", "").strip()
     
-    # Prepara a chave para o Google entender as quebras de linha
-    info["private_key"] = chave_recuperada.replace("\\n", "\n")
+    try:
+        # Decodifica a Base64
+        chave_recuperada = base64.b64decode(chave_limpa).decode()
+        # Prepara para o Google entender as quebras de linha reais
+        info["private_key"] = chave_recuperada.replace("\\n", "\n")
+    except Exception as e:
+        st.error(f"Erro na decodificação da chave: {e}")
+        st.stop()
     
     escopo = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     creds = ServiceAccountCredentials.from_json_keyfile_dict(info, escopo)
@@ -64,6 +71,7 @@ with aba_painel:
             st.info("✅ Nenhuma pendência no momento.")
     except Exception as e:
         st.error(f"Erro ao ler dados: {e}")
+
 
 
 
