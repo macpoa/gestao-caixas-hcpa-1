@@ -13,7 +13,8 @@ def conectar():
   "type": "service_account",
   "project_id": "gestao-caixas-hcpa",
   "private_key_id": "40294d927c1c149d9c8c9ac84d013715e4d28bb8",
-  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC8T5XwhDaUp8oB\nRx6LHsJjn/5HbwLXYNEx4LLLpYVn8rn1Dak5r5NtYRZJAsspCzy2jmWpn6RO3Dij\nwAlThFroCJBpJksM4rTIFqAAwXPYbV4m5nwhSlP6KB1/TUzLVPVXE7s17FH1+xzB\nftBus0bkBSQl41rClZYJ9hPFh14yCFhKANqSJlI1hq53hsOVfECVrobvR29BLuU2\nakY0S0PCkCjdgUZIbqzkofMCLdw+RJNFAYdveBArZNahc34Zx/zZj04+LJaqoy5B\nKQ5E11Lc7rNHhxXtFplL34nCBl21VlFwLVDrgkIfsBkpc8Vjl2/2uCuw0Gh7O13v\nwXs9TakVAgMBAAECggEAG4xbB44X/ARV4Xz5g2mzD2cDCIk9dau0vuK71V34F75j\nJO3kMUu1uh0naPPvK6h4r85CIh/4Jg9Ce/YmhyDIOcSy96cB+Lcbsl/Y9XNXkrRh\nPzidtTMN+P0wX4S79M0PfTcmPpu9W8pqKQZ30JIKj2YPJTnO98NxaTCmMNH+Xjwo\n9rCgSQdYU1xjWNx+MjrItdiKoB3b9b5aEL1EvA5YkpSzDt7pnI+9egRFYDUgLeDd\nLsmBVVljZiu/GS2v4nvuJkoeSn0IZ4flcfnibfkywgWgKHSrp6lQQx/In0lzX1kS\n1rpIgVwF8w5WxishE17NsMdHNynOvmPBnLy6C9oY4QKBgQDnNBTiO0SMBIvh0DT1\nLwDq0uafGiOk36FfrX1OZKRM/vghRQjK7zVAtn1CRwYLMfhnd2lKE3wJKJZWH1w5\nC5nXcevdw0Lh+P8LRX43Z/KOU8lVMO9tQ65Smex5SgyR5FdEiZDoGMrB67eMIVDB\n3DTCkUEDpDsPednnxnhux7xLEQKBgQDQgdi4EJ0WsM6dyTHQ/22ZRZ/hg3J6RiYZ\nRX7g8jA4HiT/BcYToKQpGXFu4ss0qFpZEkQIkxBJgmHYvrxPQ51hdr6KB9IytapA\nfddkprnyH18QhLa1q3o/jdx7UAPfJ1LOzHC4PiLK0WvrQs1qcxUN/JHYPXkdB1k1\n9TVgIEeVxQKBgC0sguwVEnadKMutR7ukPHSlUoRBsjczrq8oEbSwe13D761odKha\nBrinL2A0ylyDnfpxXXQozHJpqL4ZEIbg2mU7EA/baAUJBqQoJtoiiEUA3/SyRAXA\nVJ41Dvw/2Kbky5xLmLGQroUnTkyl8cZ/BRwDD4Xrn9KNR2M+5ycWBZdRAoGAXarH\nMcD84NGisA1PHMVyddVqQoOrbLSQru+iVOlXsg4QrqPoXK7gsDnm1Fp70PcER1lG\nSNfQDEXPMPBWZgFI9RzD8fwbeH5Vsk0V8vhXNibTrPcBoVEcROq0roy+gIQI1i/P\nP2Viedxkb7Z90yFJxxO8bPkIrHq9n9i9FqbJocUCgYEA1wA2KVzgO1TZhZdkCYwA\nMYbDnJrMPFdmlm8wxhheaFFwvlXVVuTlzXg8sPf/aREtNW4dloJ5i8sZ9VW4K4EN\n7MTFNkDm7XveEqwwT6QcTuEt9zyjAghaz72A+r15dXE3CLDjz2TbHMjq3AVoMEOZ\nD+z4gcWZgMmHIFA46mHpsvM=\n-----END PRIVATE KEY-----\n",
+  "private_key": "-----BEGIN PRIVATE KEY-----\n" + "MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC8T5XwhDaUp8oB\n" + # ... continue colando as linhas aqui
+"-----END PRIVATE KEY-----\n".replace('\\n', '\n'),
   "client_email": "gestao-caixas@gestao-caixas-hcpa.iam.gserviceaccount.com",
   "client_id": "102583460122623263507",
   "auth_uri": "https://accounts.google.com/o/oauth2/auth",
@@ -56,4 +57,5 @@ with aba_painel:
     if pendentes:
         st.table(pendentes)
     else:
+
         st.write("✅ Nenhuma pendência no momento.")
