@@ -1,19 +1,20 @@
+import base64
 import streamlit as st
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-import datetime
 
-# --- CONFIGURAÇÃO DA PÁGINA ---
-st.set_page_config(page_title="Sistema HCPA - Gestão de Caixas", page_icon="📦")
-
-# --- CONEXÃO COM A PLANILHA (Sua chave já configurada) ---
 @st.cache_resource
 def conectar():
-    # Puxa os dados do segredo
+    # Puxa o dicionário dos Secrets
     info = dict(st.secrets["gcp_service_account"])
     
-    # Corrige os \n para o formato que o Python entende como quebra de linha real
-    info["private_key"] = info["private_key"].replace("\\n", "\n")
+    # Decodifica a Base64 de volta para a chave original perfeitamente
+    # O .replace serve para limpar possíveis aspas extras
+    chave_limpa = info["private_key"].replace('"', '')
+    chave_recuperada = base64.b64decode(chave_limpa).decode()
+    
+    # Prepara a chave para o Google entender os pulos de linha
+    info["private_key"] = chave_recuperada.replace("\\n", "\n")
     
     escopo = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     creds = ServiceAccountCredentials.from_json_keyfile_dict(info, escopo)
@@ -50,5 +51,6 @@ with aba_painel:
     else:
 
         st.write("✅ Nenhuma pendência no momento.")
+
 
 
