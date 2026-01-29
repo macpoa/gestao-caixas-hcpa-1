@@ -9,11 +9,15 @@ st.set_page_config(page_title="Sistema HCPA - Gestão de Caixas", page_icon="�
 # --- CONEXÃO COM A PLANILHA (Sua chave já configurada) ---
 @st.cache_resource
 def conectar():
-    INFO_DA_CHAVE = st.secrets["gcp_service_account"]
+    # Puxa os dados do segredo
+    info = dict(st.secrets["gcp_service_account"])
+    
+    # Corrige os \n para o formato que o Python entende como quebra de linha real
+    info["private_key"] = info["private_key"].replace("\\n", "\n")
+    
     escopo = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(INFO_DA_CHAVE, escopo)
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(info, escopo)
     return gspread.authorize(creds).open("Gestao_Caixas_HCPA").worksheet("Pendentes")
-
 aba = conectar()
 
 # --- INTERFACE ---
@@ -46,4 +50,5 @@ with aba_painel:
     else:
 
         st.write("✅ Nenhuma pendência no momento.")
+
 
