@@ -68,17 +68,24 @@ with st.form("form_notificacao"):
         st.success(f"✅ Alerta {id_alerta} enviado com sucesso!")
         st.balloons()
 
-# --- PAINEL DE DEMANDA (Visão Simplificada para hoje) ---
-st.divider()
-st.subheader("📊 Painel de Alertas em Aberto")
-df_visualizacao = spread.sheet_to_df(sheet='db_alertas', index=0)
+# --- ABA 2: PAINEL DA EXPEDIÇÃO ---
+with tab2:
+    st.subheader("📊 Painel de Alertas em Aberto")
+    
+    try:
+        # Lê todos os dados da aba da planilha
+        dados = aba.get_all_records()
+        
+        if dados:
+            import pandas as pd
+            df_visualizacao = pd.DataFrame(dados)
+            st.dataframe(df_visualizacao)
+        else:
+            st.info("Não há alertas registrados no momento.")
+            
+    except Exception as e:
+        st.error(f"Erro ao carregar dados: {e}")
 
-if not df_visualizacao.empty:
-    # Filtra apenas o que não foi coletado ainda
-    pendentes = df_visualizacao[df_visualizacao['Status'] == 'Aberto']
-    st.dataframe(pendentes)
-else:
-    st.info("Nenhum alerta pendente.")
 
 
 
