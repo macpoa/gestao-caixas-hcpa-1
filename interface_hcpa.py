@@ -1,22 +1,24 @@
 import streamlit as st
-from gspread_pandas import Spread
-import pandas as pd
-from datetime import datetime
+import gspread
+from google.oauth2.service_account import Credentials
 
-# --- CONFIGURAÇÃO DA PÁGINA ---
-st.set_page_config(page_title="Logística HCPA 2.0", page_icon="📦", layout="wide")
+# Configuração de Acesso (Usando o que já temos nos Secrets)
+scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scope)
+client = gspread.authorize(creds)
 
-# --- CONEXÃO COM GOOGLE SHEETS ---
-nome_planilha = "Gestao_Caixas_HCPA" 
+# Nome da sua planilha (Verifique se o nome está exatamente igual ao do Google Sheets)
+NOME_PLANILHA = "Logística de Caixas - HCPA" 
+
 try:
-    # Conecta à planilha usando suas secrets já configuradas
-    spread = Spread(nome_planilha)
-    # Tenta ler a aba de alertas para contar as linhas
-    df_alertas = spread.sheet_to_df(sheet='db_alertas', index=0)
+    planilha = client.open(NOME_PLANILHA)
+    # Tenta abrir a aba db_alertas, se não existir, usa a primeira aba
+    try:
+        aba = planilha.worksheet("db_alertas")
+    except:
+        aba = planilha.get_worksheet(0) 
 except Exception as e:
-    st.error(f"Erro de conexão: {e}. Verifique se a aba 'db_alertas' existe na planilha.")
-    st.stop()
-
+    st.error(f"Erro ao abrir planilha: {e}")
 # --- INTERFACE ---
 st.title("📦 Logística de Caixas HCPA - Versão 2.0")
 
@@ -77,6 +79,7 @@ if not df_visualizacao.empty:
     st.dataframe(pendentes)
 else:
     st.info("Nenhum alerta pendente.")
+
 
 
 
