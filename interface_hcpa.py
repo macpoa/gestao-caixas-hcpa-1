@@ -7,7 +7,7 @@ from datetime import datetime
 st.set_page_config(page_title="Logística HCPA 2.0", page_icon="📦", layout="wide")
 
 # --- CONEXÃO COM GOOGLE SHEETS ---
-nome_planilha = "Gestão_Caixas_HCPA" 
+nome_planilha = "Gestao_Caixas_HCPA" 
 try:
     # Conecta à planilha usando suas secrets já configuradas
     spread = Spread(nome_planilha)
@@ -77,5 +77,6 @@ if not df_visualizacao.empty:
     st.dataframe(pendentes)
 else:
     st.info("Nenhum alerta pendente.")
+
 
 
