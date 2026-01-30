@@ -1,4 +1,6 @@
+streamlit
+pandas
 gspread
 gspread-pandas
-pandas
-streamlit
+altair==4.2.2
+extra-streamlit-components
