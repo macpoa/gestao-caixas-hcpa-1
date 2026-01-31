@@ -30,7 +30,6 @@ query_params = st.query_params
 setor_url = query_params.get("setor", "Geral")
 # --- ABA 1: FORMULÁRIO ---
 with tab1:
-     st.form("form_notificacao"):
      st.header(f"🔔 Notificar Coleta: {setor_url}")
     
      col1, col2 = st.columns(2)
@@ -89,6 +88,7 @@ with tab2:
             
     except Exception as e:
         st.error(f"Erro ao carregar dados: {e}")
+
 
 
 
