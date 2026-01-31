@@ -229,18 +229,18 @@ with tabs[2]:
         st.rerun()
 
     # FECHAR LOTE
-    def carregar_lavagem():
-    dados = aba_lavagem.get_all_records()
-    df = pd.DataFrame(dados)
+   def carregar_lavagem():
+        dados = aba_lavagem.get_all_records()
+        df = pd.DataFrame(dados)
 
-    # garante todas as colunas
-    for col in COLUNAS_LAVAGEM:
-        if col not in df.columns:
+        # garante todas as colunas esperadas
+        for col in COLUNAS_LAVAGEM:
+            if col not in df.columns:
             df[col] = None
 
-    # conversões seguras
-    df["Chegada_Lavagem"] = pd.to_datetime(df["Chegada_Lavagem"], errors="coerce")
-    df["Fim_Lavagem"] = pd.to_datetime(df["Fim_Lavagem"], errors="coerce")
+            # converte datas somente depois de garantir colunas
+            for c in ["Chegada_Lavagem", "Inicio_Lavagem", "Fim_Lavagem"]:
+                df[c] = pd.to_datetime(df[c], errors="coerce")
 
     return df
 
@@ -291,4 +291,5 @@ with tabs[4]:
     dispersao = round((campo / TOTAL) * 100, 1)
 
     st.metric("Em circulação", campo, f"{dispersao}%")
+
 
