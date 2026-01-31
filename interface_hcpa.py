@@ -67,9 +67,31 @@ def carregar_alertas():
 
 def carregar_lavagem():
     df = pd.DataFrame(aba_lavagem.get_all_records())
-    for c in ["Chegada_Lavagem", "Inicio_Lavagem", "Fim_Lavagem"]:
+
+    # garante que as colunas existam
+    for col in [
+        "ID_Lote",
+        "Chegada_Lavagem",
+        "Qtd_Pretas_Entrada",
+        "Qtd_Azuis_Entrada",
+        "Qtd_Pretas_Lavadas",
+        "Qtd_Azuis_Lavadas",
+        "Diferenca",
+        "Status",
+        "Previsao_Termino",
+        "Inicio_Lavagem",
+        "Fim_Lavagem",
+        "Turno",
+    ]:
+        if col not in df.columns:
+            df[col] = None
+
+    # agora sim converte as de data/hora
+    for c in ["Chegada_Lavagem", "Inicio_Lavagem", "Fim_Lavagem", "Previsao_Termino"]:
         df[c] = pd.to_datetime(df[c], errors="coerce")
+
     return df
+
 
 def atualizar_alerta(id_alerta, status, responsavel=None):
     cell = aba_alertas.find(id_alerta)
@@ -171,6 +193,8 @@ with tabs[1]:
 # ======================================================
 # ABA 3 — LAVAGEM
 # ======================================================
+
+
 with tabs[2]:
     st.subheader("🧼 Lavagem de Caixas")
 
@@ -283,6 +307,7 @@ with tabs[4]:
     dispersao = round((campo / TOTAL) * 100, 1)
 
     st.metric("Em circulação", campo, f"{dispersao}%")
+
 
 
 
