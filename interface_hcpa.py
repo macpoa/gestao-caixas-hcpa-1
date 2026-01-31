@@ -140,7 +140,9 @@ with tab2:
                         st.rerun()
     else:
         st.info("Sem alertas ativos.")
-
+# =============================
+# ABA 3 — CONTROLE DE HIGIENIZAÇÃO
+# =============================
 with tab3:
     st.subheader("🧼 Controle de Higienização")
     
@@ -159,6 +161,9 @@ with tab3:
             # E mudaria o status das caixas em db_alertas para "Higienizada"
             st.success(f"Lote de {lote_qtd} {tipo_caixa} registrado!")
 
+# =============================
+# ABA 4 — PAINEL DE GESTAO
+# =============================
 with tab4:
     st.subheader("📊 Painel de Gestão (Cérebro)")
     
@@ -184,6 +189,7 @@ with tab4:
         
         if not atrasados.empty:
             st.warning(f"⚠️ Existem {len(atrasados)} alertas parados há mais de {tempo_limite} min!")
+
 
 
 
