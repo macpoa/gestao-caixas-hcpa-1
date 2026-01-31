@@ -197,53 +197,47 @@ with tabs[1]:
 # ABA 3 — LAVAGEM
 # ======================================================
 with tabs[2]:
-    st.subheader("🧼 Lavagem de Caixas")
+    st.subheader("🧼 Lavagem")
 
-    # REGISTRAR CHEGADA
-    with st.form("chegada_lavagem"):
-        c1, c2 = st.columns(2)
-        with c1:
-            pretas = st.number_input("Pretas que chegaram", min_value=0)
-        with c2:
-            azuis = st.number_input("Azuis que chegaram", min_value=0)
-
-        turno = st.selectbox("Turno", ["Manhã", "Tarde", "Noite"])
+    with st.form("entrada_lavagem"):
+        p = st.number_input("Pretas que chegaram", min_value=0)
+        a = st.number_input("Azuis que chegaram", min_value=0)
         enviar = st.form_submit_button("Registrar chegada")
 
     if enviar:
-        agora = datetime.now()
         aba_lavagem.append_row([
             novo_id("LOT"),
-            agora.strftime("%Y-%m-%d %H:%M:%S"),
-            pretas,
-            azuis,
-            "",
-            "",
-            "",
-            "Em Lavagem",
-            agora.strftime("%Y-%m-%d %H:%M:%S"),
-            "",
-            turno
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            p, a, "", "", "", "Em Lavagem", "", ""
         ])
-        st.success("✅ Lote iniciado")
+        st.success("✅ Lote criado")
         st.rerun()
 
-    # FECHAR LOTE
-   def carregar_lavagem():
-        dados = aba_lavagem.get_all_records()
-        df = pd.DataFrame(dados)
+    df_lav = carregar_lavagem()
+    ativos = df_lav[df_lav["Status"] == "Em Lavagem"]
 
-        # garante todas as colunas esperadas
-        for col in COLUNAS_LAVAGEM:
-            if col not in df.columns:
-            df[col] = None
+    for _, row in ativos.iterrows():
+        with st.expander(f"🧺 {row['ID_Lote']}"):
+            with st.form(f"fecha_{row['ID_Lote']}"):
+                pl = st.number_input("Pretas lavadas", min_value=0)
+                al = st.number_input("Azuis lavadas", min_value=0)
+                fechar = st.form_submit_button("✔️ Fechar lote")
 
-            # converte datas somente depois de garantir colunas
-            for c in ["Chegada_Lavagem", "Inicio_Lavagem", "Fim_Lavagem"]:
-                df[c] = pd.to_datetime(df[c], errors="coerce")
+            if fechar:
+                ent = (row["Qtd_Pretas"] or 0) + (row["Qtd_Azuis"] or 0)
+                lav = pl + al
+                diff = lav - ent
 
-    return df
+                cell = aba_lavagem.find(row["ID_Lote"])
+                r = cell.row
 
+                aba_lavagem.update(f"E{r}:J{r}", [[
+                    pl, al, diff, "Finalizado", "",
+                    datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                ]])
+
+                st.success("✅ Lote finalizado")
+                st.rerun()
 
 # ======================================================
 # ABA 4 — GESTÃO
@@ -291,5 +285,6 @@ with tabs[4]:
     dispersao = round((campo / TOTAL) * 100, 1)
 
     st.metric("Em circulação", campo, f"{dispersao}%")
+
 
 
