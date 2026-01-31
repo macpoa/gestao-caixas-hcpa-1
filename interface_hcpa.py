@@ -52,6 +52,18 @@ COLUNAS = [
     "Status",
     "Responsavel"
 ]
+COLUNAS_LAVAGEM = [
+    "ID_Lote",
+    "Chegada_Lavagem",
+    "Qtd_Pretas",
+    "Qtd_Azuis",
+    "Qtd_Pretas_Lavadas",
+    "Qtd_Azuis_Lavadas",
+    "Diferenca",
+    "Status",
+    "Previsao_Termin",
+    "Fim_Lavagem"
+]
 
 
 # ======================================================
@@ -217,31 +229,21 @@ with tabs[2]:
         st.rerun()
 
     # FECHAR LOTE
-    df_lav = carregar_lavagem()
-    ativos = df_lav[df_lav["Status"] == "Em Lavagem"]
+    def carregar_lavagem():
+    dados = aba_lavagem.get_all_records()
+    df = pd.DataFrame(dados)
 
-    for _, row in ativos.iterrows():
-        with st.expander(f"🧺 {row['ID_Lote']} | {row['Turno']}"):
-            with st.form(f"fechar_{row['ID_Lote']}"):
-                p = st.number_input("Pretas lavadas", min_value=0)
-                a = st.number_input("Azuis lavadas", min_value=0)
-                fechar = st.form_submit_button("✔️ Fechar lote")
+    # garante todas as colunas
+    for col in COLUNAS_LAVAGEM:
+        if col not in df.columns:
+            df[col] = None
 
-            if fechar:
-                total_ent = (row["Qtd_Pretas_Entrada"] or 0) + (row["Qtd_Azuis_Entrada"] or 0)
-                total_lav = p + a
-                diff = total_lav - total_ent
+    # conversões seguras
+    df["Chegada_Lavagem"] = pd.to_datetime(df["Chegada_Lavagem"], errors="coerce")
+    df["Fim_Lavagem"] = pd.to_datetime(df["Fim_Lavagem"], errors="coerce")
 
-                cell = aba_lavagem.find(row["ID_Lote"])
-                r = cell.row
+    return df
 
-                aba_lavagem.update(f"E{r}:J{r}", [[
-                    p, a, diff, "Finalizado",
-                    row["Inicio_Lavagem"].strftime("%Y-%m-%d %H:%M:%S"),
-                    datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                ]])
-                st.success("✅ Lote finalizado")
-                st.rerun()
 
 # ======================================================
 # ABA 4 — GESTÃO
@@ -289,3 +291,4 @@ with tabs[4]:
     dispersao = round((campo / TOTAL) * 100, 1)
 
     st.metric("Em circulação", campo, f"{dispersao}%")
+
