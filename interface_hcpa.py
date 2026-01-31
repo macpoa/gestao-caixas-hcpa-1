@@ -3,7 +3,7 @@ import gspread
 import pandas as pd
 from google.oauth2.service_account import Credentials
 from datetime import datetime
-import gspread_dataframe as spread
+from gspread_dataframe import set_with_dataframe
 
 # -----------------------------
 # CONFIGURAÇÃO GOOGLE SHEETS
@@ -99,11 +99,12 @@ with tab1:
             "Status": "Aberto"
         }])
 
-        spread.df_to_sheet(
+        set_with_dataframe(
+            aba_alertas,
             novo_alerta,
-            sheet="db_alertas",
-            index=False,
-            append=True
+            row=len(df_alertas) + 2,   # evita sobrescrever cabeçalho
+            include_index=False,
+            include_column_header=False
         )
 
         st.success(f"✅ Alerta {novo_id} registrado com sucesso!")
@@ -128,6 +129,7 @@ with tab2:
         )
     else:
         st.info("Nenhum alerta registrado ainda.")
+
 
 
 
