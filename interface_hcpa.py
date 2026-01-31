@@ -145,9 +145,28 @@ with tab2:
 # =============================
 with tab3:
     st.subheader("🧼 Controle de Higienização")
-    
+    dados = aba_alertas.get_all_records()
+
+    colunas = [
+        "ID_Alerta",
+        "Data_Hora",
+        "ID_Setor",
+        "Setor_Nome",
+        "Qtd_Pretas",
+        "Qtd_Azuis",
+        "Skates",
+        "Carrinhos",
+        "Status",
+        "Responsavel"
+    ]
+
+if dados:
+    df_atual = pd.DataFrame(dados)
+else:
+    df_atual = pd.DataFrame(columns=colunas)
+
     # Cálculo rápido baseado no df_atual
-    sujas_pretas = len(df_atual[df_atual["Status"] == "Coletado"]) # Exemplo simplificado por alertas
+    sujas_pretas = df_atual.get("Status", []).eq("Coletado").sum()
     
     st.metric("Caixas no Pátio (Aguardando Lavagem)", sujas_pretas)
     
@@ -189,6 +208,7 @@ with tab4:
         
         if not atrasados.empty:
             st.warning(f"⚠️ Existem {len(atrasados)} alertas parados há mais de {tempo_limite} min!")
+
 
 
 
