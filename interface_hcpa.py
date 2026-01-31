@@ -88,10 +88,10 @@ with tabs[0]:
 
         col1, col2 = st.columns(2)
         with col1:
-            pretas = st.radio("Caixas Pretas", ["0", "≤5", "≤10", ">10"])
+            pretas = st.radio("Caixas Pretas", ["0", "≤5", "≤10", " >10"])
             skates = st.number_input("Skates disponíveis", min_value=0)
         with col2:
-            azuis = st.radio("Caixas Azuis", ["0", "≤30", ">30"])
+            azuis = st.radio("Caixas Azuis", ["0", "≤30", " >30"])
             carrinhos = st.number_input("Carrinhos disponíveis", min_value=0)
 
         enviar = st.form_submit_button("🚀 Enviar alerta")
@@ -197,7 +197,7 @@ with tabs[3]:
 with tabs[4]:
     st.subheader("📋 Inventário por Exclusão")
 
-    TOTAL = 500
+    TOTAL = 1000
     st.info(f"Patrimônio total: {TOTAL}")
 
     col1, col2 = st.columns(2)
@@ -219,6 +219,7 @@ with tabs[4]:
 
     if dispersao > 35:
         st.error("⚠️ Índice de dispersão acima do limite seguro")
+
 
 
 
