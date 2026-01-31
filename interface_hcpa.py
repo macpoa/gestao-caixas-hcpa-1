@@ -47,10 +47,20 @@ def novo_id(prefixo):
     return f"{prefixo}{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
 def carregar_alertas():
-    df = pd.DataFrame(aba_alertas.get_all_records())
+    dados = aba_alertas.get_all_records()
+
+    df = pd.DataFrame(dados)
+
+    # garante colunas
+    for col in COLUNAS:
+        if col not in df.columns:
+            df[col] = None
+
     df["Data_Hora"] = pd.to_datetime(df["Data_Hora"], errors="coerce")
     df["Urgencia"] = df["Urgencia"].fillna("🟢 Pode esperar")
     df["Status"] = df["Status"].fillna("Aberto")
+    df["Responsavel"] = df["Responsavel"].fillna("")
+
     return df
 
 def carregar_lavagem():
@@ -264,3 +274,4 @@ with tabs[4]:
     dispersao = round((campo / TOTAL) * 100, 1)
 
     st.metric("Em circulação", campo, f"{dispersao}%")
+
