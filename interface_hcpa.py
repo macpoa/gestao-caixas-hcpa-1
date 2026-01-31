@@ -144,57 +144,57 @@ with tabs[1]:
                 st.write(f"📦 Pretas (informado): {row['Qtd_Pretas']}")
                 st.write(f"📦 Azuis (informado): {row['Qtd_Azuis']}")
 
-                # ASSUMIR COLETA
+                # ASSUMIR
                 if row["Status"] == "Aberto":
                     if st.button("🟡 Assumir coleta", key=f"ass_{row['ID_Alerta']}"):
                         atualizar_status(row["ID_Alerta"], "Em Coleta")
                         st.rerun()
 
-                # FINALIZAR COLETA
+                # FINALIZAR
                 if row["Status"] == "Em Coleta":
                     with st.form(f"form_{row['ID_Alerta']}"):
                         st.markdown("### ✅ Finalizar coleta")
 
+                        responsavel = st.text_input(
+                            "Cartão ponto do responsável (7 dígitos)",
+                            max_chars=7
+                        )
+
                         col1, col2 = st.columns(2)
                         with col1:
                             pretas_real = st.number_input(
-                                "Pretas coletadas",
-                                min_value=0,
-                                value=0,
-                                key=f"pr_{row['ID_Alerta']}"
+                                "Pretas coletadas", min_value=0
                             )
                         with col2:
                             azuis_real = st.number_input(
-                                "Azuis coletadas",
-                                min_value=0,
-                                value=0,
-                                key=f"az_{row['ID_Alerta']}"
+                                "Azuis coletadas", min_value=0
                             )
 
-                        zerado = st.checkbox(
-                            "Setor ficou zerado de caixas",
-                            key=f"z_{row['ID_Alerta']}"
-                        )
+                        zerado = st.checkbox("Setor ficou zerado de caixas")
 
                         confirmar = st.form_submit_button("✔️ Confirmar coleta")
 
                     if confirmar:
-                        # atualiza este alerta
-                        atualizar_status(row["ID_Alerta"], "Coletado")
+                        if not responsavel.isdigit() or len(responsavel) != 7:
+                            st.error("⚠️ Informe um cartão ponto válido (7 dígitos)")
+                        else:
+                            # Atualiza alerta atual
+                            atualizar_status(row["ID_Alerta"], "Coletado")
+                            atualizar_responsavel(row["ID_Alerta"], responsavel)
 
-                        # se setor zerado → encerra todos os alertas abertos do setor
-                        if zerado:
-                            alertas_setor = df[
-                                (df["ID_Setor"] == row["ID_Setor"]) &
-                                (df["Status"].isin(["Aberto", "Em Coleta"]))
-                            ]
+                            # Se zerado, fecha TODOS os alertas do setor
+                            if zerado:
+                                alertas_setor = df[
+                                    (df["ID_Setor"] == row["ID_Setor"]) &
+                                    (df["Status"].isin(["Aberto", "Em Coleta"]))
+                                ]
 
-                            for id_alerta in alertas_setor["ID_Alerta"]:
-                                atualizar_status(id_alerta, "Coletado")
+                                for id_alerta in alertas_setor["ID_Alerta"]:
+                                    atualizar_status(id_alerta, "Coletado")
+                                    atualizar_responsavel(id_alerta, responsavel)
 
-                        st.success("✅ Coleta registrada com sucesso")
-                        st.rerun()
-
+                            st.success("✅ Coleta registrada com sucesso")
+                            st.rerun()
 
 # =============================
 # ABA 3 — LAVAGEM
@@ -262,4 +262,5 @@ with tabs[4]:
 
     if dispersao > 35:
         st.error("⚠️ Índice de dispersão acima do limite seguro")
+
 
