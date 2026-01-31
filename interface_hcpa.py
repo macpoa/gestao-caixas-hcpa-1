@@ -12,7 +12,9 @@ st.set_page_config(page_title="Logística de Caixas HCPA", layout="wide")
 NOME_PLANILHA = "Gestao_Caixas_HCPA"
 ABA_ALERTAS = "db_alertas"
 ABA_LAVAGEM = "db_lavagem"
-COLUNAS = ["ID_Alerta", "Data_Hora", "ID_Setor", "Urgencia", "Qtd_Pretas", "Qtd_Azuis", "Skates", "Carrinhos", "Status", "Responsavel"]
+ABA_SETORES = "db_setores"
+ABA_HISTORICO = "db_historico"
+COLUNAS = ["ID_Alerta", "Data_Hora", "ID_Setor", "Urgencia", "Qtd_Pretas", "Qtd_Azuis", "Skates", "Carrinhos", "Status", "Responsavel","ID_Lote","Chegada_Lavagem","Qtd_Pretas","Qtd_Azuis","Status","Previsao_Termino","Inicio_Lavagem","Fim_Lavagem","ID_Setor","Nome_Setor","Bloco","Andar","Distancia_Metros","Prioridade"]
 STATUS_ATIVOS = ["Aberto", "Em Coleta", "Coletado"]
 
 MAPA_URGENCIA = {
@@ -281,6 +283,7 @@ with tabs[4]:
     dispersao = round((campo / TOTAL) * 100, 1)
 
     st.metric("Em circulação", campo, f"{dispersao}%")
+
 
 
 
