@@ -141,17 +141,60 @@ with tabs[1]:
             with st.expander(
                 f"{row['Urgencia']} | {row['ID_Setor']} | {int(row['Tempo_Aberto'])} min"
             ):
-                st.write(f"Pretas: {row['Qtd_Pretas']} | Azuis: {row['Qtd_Azuis']}")
+                st.write(f"📦 Pretas (informado): {row['Qtd_Pretas']}")
+                st.write(f"📦 Azuis (informado): {row['Qtd_Azuis']}")
 
+                # ASSUMIR COLETA
                 if row["Status"] == "Aberto":
-                    if st.button("🟡 Assumir", key=row["ID_Alerta"]):
+                    if st.button("🟡 Assumir coleta", key=f"ass_{row['ID_Alerta']}"):
                         atualizar_status(row["ID_Alerta"], "Em Coleta")
                         st.rerun()
 
+                # FINALIZAR COLETA
                 if row["Status"] == "Em Coleta":
-                    if st.button("✅ Coletado", key=f"col_{row['ID_Alerta']}"):
+                    with st.form(f"form_{row['ID_Alerta']}"):
+                        st.markdown("### ✅ Finalizar coleta")
+
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            pretas_real = st.number_input(
+                                "Pretas coletadas",
+                                min_value=0,
+                                value=0,
+                                key=f"pr_{row['ID_Alerta']}"
+                            )
+                        with col2:
+                            azuis_real = st.number_input(
+                                "Azuis coletadas",
+                                min_value=0,
+                                value=0,
+                                key=f"az_{row['ID_Alerta']}"
+                            )
+
+                        zerado = st.checkbox(
+                            "Setor ficou zerado de caixas",
+                            key=f"z_{row['ID_Alerta']}"
+                        )
+
+                        confirmar = st.form_submit_button("✔️ Confirmar coleta")
+
+                    if confirmar:
+                        # atualiza este alerta
                         atualizar_status(row["ID_Alerta"], "Coletado")
+
+                        # se setor zerado → encerra todos os alertas abertos do setor
+                        if zerado:
+                            alertas_setor = df[
+                                (df["ID_Setor"] == row["ID_Setor"]) &
+                                (df["Status"].isin(["Aberto", "Em Coleta"]))
+                            ]
+
+                            for id_alerta in alertas_setor["ID_Alerta"]:
+                                atualizar_status(id_alerta, "Coletado")
+
+                        st.success("✅ Coleta registrada com sucesso")
                         st.rerun()
+
 
 # =============================
 # ABA 3 — LAVAGEM
@@ -219,3 +262,4 @@ with tabs[4]:
 
     if dispersao > 35:
         st.error("⚠️ Índice de dispersão acima do limite seguro")
+
