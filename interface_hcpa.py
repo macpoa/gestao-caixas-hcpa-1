@@ -83,28 +83,28 @@ with tab1:
 
         submitted = st.form_submit_button("🚀 Enviar Alerta")
 
-       if submitted:
-          agora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-          novo_id = f"ALT{len(df_alertas) + 1:05d}"
+    # 👇 ESTE BLOCO TEM QUE FICAR FORA DO with st.form
+    if submitted:
+        agora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        novo_id = f"ALT{len(df_alertas) + 1:05d}"
 
-          nova_linha = [
-              novo_id,
-              agora,
-              setor_url,
-              qtd_pretas,
-              qtd_azuis,
-              skates,
-              carrinhos,
-              "Aberto"
+        nova_linha = [
+            novo_id,
+            agora,
+            setor_url,
+            qtd_pretas,
+            qtd_azuis,
+            skates,
+            carrinhos,
+            "Aberto"
         ]
 
-    aba_alertas.append_row(
-        nova_linha,
-        value_input_option="USER_ENTERED"
-    )
+        aba_alertas.append_row(
+            nova_linha,
+            value_input_option="USER_ENTERED"
+        )
 
-    st.success(f"✅ Alerta {novo_id} registrado com sucesso!")
-
+        st.success(f"✅ Alerta {novo_id} registrado com sucesso!")
 
 # =============================
 # ABA 2 — EXPEDIÇÃO
@@ -126,9 +126,6 @@ with tab2:
         )
     else:
         st.info("Nenhum alerta registrado ainda.")
-
-
-
 
 
 
