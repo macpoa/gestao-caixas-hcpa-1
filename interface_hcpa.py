@@ -28,25 +28,24 @@ tab1, tab2 = st.tabs(["Notificar Coleta", "Painel da Expedição"])
 # Captura de Setor via URL (Ex: ?setor=ONCO)
 query_params = st.query_params
 setor_url = query_params.get("setor", "Geral")
-# --- ABA 1: FORMULÁRIO ---
+# --- ABA 1: NOTIFICAR ---
 with tab1:
-    st.header(f"🔔 Notificar Coleta: {setor_url}")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("Caixas Pretas")
-        qtd_pretas = st.radio("Quantidade (Pretas)", ["0", "Até 05", "Até 10", "+ de 10"], key="pretas")
-        skates = st.number_input("Quantidade de Skates", min_value=0, step=1)
+    with st.form("form_alerta"):
+        st.write("Preencha os dados abaixo para solicitar a coleta:")
+        setor_selecionado = st.selectbox("Selecione seu Setor", ["Almoxarifado", "Oncologia", "Bloco Cirúrgico", "Genética"])
+        qtd_pretas = st.radio("Quantidade de Caixas Pretas", ["0", "<= 5", "<= 10", "> 10"])
+        qtd_azuis = st.radio("Quantidade de Caixas Azuis", ["0", "<= 30", "> 30"])
+        
+        # O segredo está aqui: o botão deve ser a última coisa do formulário
+        submetido = st.form_submit_button("🚀 Enviar Alerta Inteligente")
 
-    with col2:
-        st.subheader("Caixas Azuis")
-        qtd_azuis = st.radio("Quantidade (Azuis)", ["0", "Até 10", "Até 30", "+ de 30"], key="azuis")
-        carrinhos = st.number_input("Quantidade de Carrinhos", min_value=0, step=1)
-
-    obs = st.text_area("Observações (Ex: Vazamento, Caixa Danificada)")
-    
-    submetido = st.form_submit_button("🚀 Enviar Alerta Inteligente")
+    # A lógica de gravação deve ficar FORA do bloco 'with st.form'
+    if submetido:
+        try:
+            # Aqui vai o seu código de 'aba.append_row'
+            st.success("✅ Alerta enviado com sucesso para a Expedição!")
+        except Exception as e:
+            st.error(f"Erro ao gravar: {e}")
 
     if submetido:
         agora = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -88,6 +87,7 @@ with tab2:
             
     except Exception as e:
         st.error(f"Erro ao carregar dados: {e}")
+
 
 
 
