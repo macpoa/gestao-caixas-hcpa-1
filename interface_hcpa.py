@@ -115,7 +115,7 @@ with tab2:
     
     # Recarregar dados para garantir atualização
     df_atual = pd.DataFrame(aba_alertas.get_all_records())
-    
+    st.write("Colunas detectadas:", df_atual.columns.tolist())
     if not df_atual.empty:
         # Filtrar apenas o que não está "Fechado" ou "Lavado"
         df_operacional = df_atual[df_atual["Status"].isin(["Aberto", "Em Coleta", "Coletado"])]
@@ -189,6 +189,7 @@ with tab4:
         
         if not atrasados.empty:
             st.warning(f"⚠️ Existem {len(atrasados)} alertas parados há mais de {tempo_limite} min!")
+
 
 
 
