@@ -40,7 +40,7 @@ df_alertas = pd.DataFrame(dados_alertas)
 st.set_page_config(page_title="Logística de Caixas HCPA", layout="wide")
 st.title("📦 Logística de Caixas – HCPA | MVP")
 
-tab1, tab2 = st.tabs(["🔔 Notificar Coleta", "🚚 Painel da Expedição"])
+tab1, tab2, tab3, tab4 = st.tabs(["🔔 Setor", "🚚 Expedição", "🧼 Lavagem", "🧠 Gestão"])
 
 # Captura de Setor via QR (URL)
 query_params = st.query_params
@@ -109,23 +109,84 @@ with tab1:
 # =============================
 # ABA 2 — EXPEDIÇÃO
 # =============================
+# Dentro de with tab2:
 with tab2:
-    st.subheader("🚚 Alertas em Aberto")
-
-    if not df_alertas.empty:
-        df_abertos = df_alertas[df_alertas["Status"] == "Aberto"]
-
-        st.metric(
-            "Alertas em Aberto",
-            len(df_abertos)
-        )
-
-        st.dataframe(
-            df_abertos.sort_values("Data_Hora_Notificacao", ascending=False),
-            use_container_width=True
-        )
+    st.subheader("🚚 Gestão de Coletas")
+    
+    # Recarregar dados para garantir atualização
+    df_atual = pd.DataFrame(aba_alertas.get_all_records())
+    
+    if not df_atual.empty:
+        # Filtrar apenas o que não está "Fechado" ou "Lavado"
+        df_operacional = df_atual[df_atual["Status"].isin(["Aberto", "Em Coleta", "Coletado"])]
+        
+        for index, row in df_operacional.iterrows():
+            with st.expander(f"📍 {row['ID_Setor']} - {row['ID_Alerta']} ({row['Status']})"):
+                col_a, col_b, col_c = st.columns(3)
+                col_a.write(f"**Pretas:** {row['Qtd_Pretas_Classe']} | **Azuis:** {row['Qtd_Azuis_Classe']}")
+                
+                # O gspread usa índice 1-based e tem cabeçalho, então a linha no Sheets é index + 2
+                linha_sheets = index + 2 
+                
+                if row["Status"] == "Aberto":
+                    if col_b.button("🟡 Assumir", key=f"assumir_{row['ID_Alerta']}"):
+                        aba_alertas.update_cell(linha_sheets, 8, "Em Coleta") # Coluna 8 é Status
+                        st.rerun()
+                
+                if row["Status"] == "Em Coleta":
+                    if col_b.button("✅ Coletado", key=f"coletar_{row['ID_Alerta']}"):
+                        aba_alertas.update_cell(linha_sheets, 8, "Coletado")
+                        # Opcional: registrar horário da coleta em outra coluna se desejar
+                        st.rerun()
     else:
-        st.info("Nenhum alerta registrado ainda.")
+        st.info("Sem alertas ativos.")
+
+with tab3:
+    st.subheader("🧼 Controle de Higienização")
+    
+    # Cálculo rápido baseado no df_atual
+    sujas_pretas = len(df_atual[df_atual["Status"] == "Coletado"]) # Exemplo simplificado por alertas
+    
+    st.metric("Caixas no Pátio (Aguardando Lavagem)", sujas_pretas)
+    
+    with st.form("fluxo_lavagem"):
+        lote_qtd = st.number_input("Quantidade de caixas no lote", min_value=1)
+        tipo_caixa = st.selectbox("Tipo", ["Preta", "Azul"])
+        botao_lavagem = st.form_submit_button("Finalizar Higienização de Lote")
+        
+        if botao_lavagem:
+            # Aqui você faria o append_row na aba db_lavagem
+            # E mudaria o status das caixas em db_alertas para "Higienizada"
+            st.success(f"Lote de {lote_qtd} {tipo_caixa} registrado!")
+
+with tab4:
+    st.subheader("📊 Painel de Gestão (Cérebro)")
+    
+    if not df_atual.empty:
+        df_atual['Data_Hora_Notificacao'] = pd.to_datetime(df_atual['Data_Hora_Notificacao'])
+        
+        # 1. Top 5 Setores (Últimos 7 dias)
+        st.write("**📍 Top 5 Setores Críticos (7 dias)**")
+        top_setores = df_atual[df_atual['Status'] != "Aberto"]['ID_Setor'].value_counts().head(5)
+        st.bar_chart(top_setores)
+        
+        # 2. Volume por Status
+        st.write("**📦 Fluxo de Caixas Atual**")
+        fluxo = df_atual['Status'].value_counts()
+        st.table(fluxo)
+        
+        # 3. Alerta de Gargalo (Exemplo de lógica)
+        tempo_limite = 30 # minutos
+        # Lógica: Se 'Aberto' há mais de X min, avisar.
+        agora = pd.Timestamp.now()
+        atrasados = df_atual[(df_atual['Status'] == 'Aberto') & 
+                             ((agora - df_atual['Data_Hora_Notificacao']).dt.total_seconds() > tempo_limite * 60)]
+        
+        if not atrasados.empty:
+            st.warning(f"⚠️ Existem {len(atrasados)} alertas parados há mais de {tempo_limite} min!")
+
+
+
 
 
 
