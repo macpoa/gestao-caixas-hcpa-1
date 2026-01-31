@@ -3,7 +3,6 @@ import gspread
 import pandas as pd
 from google.oauth2.service_account import Credentials
 from datetime import datetime
-from gspread_dataframe import set_with_dataframe
 
 # -----------------------------
 # CONFIGURAÇÃO GOOGLE SHEETS
@@ -84,30 +83,28 @@ with tab1:
 
         submitted = st.form_submit_button("🚀 Enviar Alerta")
 
-    if submitted:
-        agora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        novo_id = f"ALT{len(df_alertas) + 1:05d}"
+   if submitted:
+    agora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    novo_id = f"ALT{len(df_alertas) + 1:05d}"
 
-        novo_alerta = pd.DataFrame([{
-            "ID_Alerta": novo_id,
-            "Data_Hora_Notificacao": agora,
-            "ID_Setor": setor_url,
-            "Qtd_Pretas_Classe": qtd_pretas,
-            "Qtd_Azuis_Classe": qtd_azuis,
-            "Skates": skates,
-            "Carrinhos": carrinhos,
-            "Status": "Aberto"
-        }])
+    nova_linha = [
+        novo_id,
+        agora,
+        setor_url,
+        qtd_pretas,
+        qtd_azuis,
+        skates,
+        carrinhos,
+        "Aberto"
+    ]
 
-        set_with_dataframe(
-            aba_alertas,
-            novo_alerta,
-            row=len(df_alertas) + 2,   # evita sobrescrever cabeçalho
-            include_index=False,
-            include_column_header=False
-        )
+    aba_alertas.append_row(
+        nova_linha,
+        value_input_option="USER_ENTERED"
+    )
 
-        st.success(f"✅ Alerta {novo_id} registrado com sucesso!")
+    st.success(f"✅ Alerta {novo_id} registrado com sucesso!")
+
 
 # =============================
 # ABA 2 — EXPEDIÇÃO
@@ -129,6 +126,7 @@ with tab2:
         )
     else:
         st.info("Nenhum alerta registrado ainda.")
+
 
 
 
