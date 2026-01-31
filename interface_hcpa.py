@@ -115,10 +115,10 @@ with tabs[0]:
         st.success("✅ Alerta enviado com sucesso")
 
 # =============================
-# ABA 2 — EXPEDIÇÃO
+# ABA 2 — EXPEDIÇÃO (POR SETOR)
 # =============================
 with tabs[1]:
-    st.subheader("🚚 Ordem sugerida de coleta")
+    st.subheader("🚚 Ordem sugerida de coleta por setor")
 
     df = carregar()
     ativos = df[df["Status"].isin(STATUS_ATIVOS)].copy()
@@ -126,75 +126,88 @@ with tabs[1]:
     if ativos.empty:
         st.info("Nenhum alerta ativo")
     else:
+        agora = datetime.now()
+
         ativos["Tempo_Aberto"] = (
-            datetime.now() - ativos["Data_Hora"]
+            agora - ativos["Data_Hora"]
         ).dt.total_seconds().fillna(0) / 60
 
         ativos["Peso_Urgencia"] = ativos["Urgencia"].map(MAPA_URGENCIA).fillna(1)
 
-        ativos = ativos.sort_values(
-            by=["Peso_Urgencia", "Tempo_Aberto"],
+        # 🔹 AGREGAÇÃO POR SETOR
+        resumo_setor = (
+            ativos
+            .groupby("ID_Setor")
+            .agg(
+                Qtde_Alertas=("ID_Alerta", "count"),
+                Tempo_Max=("Tempo_Aberto", "max"),
+                Peso_Max=("Peso_Urgencia", "max"),
+            )
+            .reset_index()
+        )
+
+        # 🔹 ORDENAÇÃO ESTRATÉGICA
+        resumo_setor = resumo_setor.sort_values(
+            by=["Peso_Max", "Tempo_Max"],
             ascending=False
         )
 
-        for _, row in ativos.iterrows():
+        for _, setor in resumo_setor.iterrows():
+            setor_nome = setor["ID_Setor"]
+
             with st.expander(
-                f"{row['Urgencia']} | {row['ID_Setor']} | {int(row['Tempo_Aberto'])} min"
+                f"📍 {setor_nome} | "
+                f"{int(setor['Tempo_Max'])} min | "
+                f"{int(setor['Qtde_Alertas'])} avisos"
             ):
-                st.write(f"📦 Pretas (informado): {row['Qtd_Pretas']}")
-                st.write(f"📦 Azuis (informado): {row['Qtd_Azuis']}")
+                df_setor = ativos[ativos["ID_Setor"] == setor_nome]
 
-                # ASSUMIR
-                if row["Status"] == "Aberto":
-                    if st.button("🟡 Assumir coleta", key=f"ass_{row['ID_Alerta']}"):
-                        atualizar_status(row["ID_Alerta"], "Em Coleta")
-                        st.rerun()
+                st.markdown("**Alertas ativos neste setor:**")
+                st.table(
+                    df_setor[
+                        ["Urgencia", "Qtd_Pretas", "Qtd_Azuis", "Status", "Data_Hora"]
+                    ]
+                )
 
-                # FINALIZAR
-                if row["Status"] == "Em Coleta":
-                    with st.form(f"form_{row['ID_Alerta']}"):
-                        st.markdown("### ✅ Finalizar coleta")
+                with st.form(f"form_setor_{setor_nome}"):
+                    st.markdown("### ✅ Finalizar coleta do setor")
 
-                        responsavel = st.text_input(
-                            "Cartão ponto do responsável",
-                            max_chars=10
+                    responsavel = st.text_input(
+                        "Cartão ponto do responsável",
+                        max_chars=10,
+                        key=f"resp_{setor_nome}"
+                    )
+
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        pretas_real = st.number_input(
+                            "Pretas coletadas (total setor)",
+                            min_value=0,
+                            key=f"pr_{setor_nome}"
+                        )
+                    with col2:
+                        azuis_real = st.number_input(
+                            "Azuis coletadas (total setor)",
+                            min_value=0,
+                            key=f"az_{setor_nome}"
                         )
 
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            pretas_real = st.number_input(
-                                "Pretas coletadas", min_value=0
-                            )
-                        with col2:
-                            azuis_real = st.number_input(
-                                "Azuis coletadas", min_value=0
-                            )
+                    confirmar = st.form_submit_button("✔️ Confirmar coleta do setor")
 
-                        zerado = st.checkbox("Setor ficou zerado de caixas")
+                if confirmar:
+                    if not responsavel.isdigit() or len(responsavel) > 10:
+                        st.error("⚠️ Informe um cartão ponto válido (até 10 dígitos)")
+                    else:
+                        # Fecha TODOS os alertas do setor
+                        for id_alerta in df_setor["ID_Alerta"]:
+                            atualizar_status(id_alerta, "Coletado")
+                            atualizar_responsavel(id_alerta, responsavel)
 
-                        confirmar = st.form_submit_button("✔️ Confirmar coleta")
+                        st.success(
+                            f"✅ Coleta do setor **{setor_nome}** registrada com sucesso"
+                        )
+                        st.rerun()
 
-                    if confirmar:
-                        if not responsavel.isdigit() or len(responsavel) > 10:
-                            st.error("⚠️ Informe um cartão ponto válido (até 10 dígitos)")
-                        else:
-                            # Atualiza alerta atual
-                            atualizar_status(row["ID_Alerta"], "Coletado")
-                            atualizar_responsavel(row["ID_Alerta"], responsavel)
-
-                            # Se zerado, fecha TODOS os alertas do setor
-                            if zerado:
-                                alertas_setor = df[
-                                    (df["ID_Setor"] == row["ID_Setor"]) &
-                                    (df["Status"].isin(["Aberto", "Em Coleta"]))
-                                ]
-
-                                for id_alerta in alertas_setor["ID_Alerta"]:
-                                    atualizar_status(id_alerta, "Coletado")
-                                    atualizar_responsavel(id_alerta, responsavel)
-
-                            st.success("✅ Coleta registrada com sucesso")
-                            st.rerun()
 
 # =============================
 # ABA 3 — LAVAGEM
@@ -262,6 +275,7 @@ with tabs[4]:
 
     if dispersao > 35:
         st.error("⚠️ Índice de dispersão acima do limite seguro")
+
 
 
 
