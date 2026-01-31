@@ -40,6 +40,20 @@ planilha = client.open(NOME_PLANILHA)
 aba_alertas = planilha.worksheet(ABA_ALERTAS)
 aba_lavagem = planilha.worksheet(ABA_LAVAGEM)
 
+COLUNAS = [
+    "ID_Alerta",
+    "Data_Hora",
+    "ID_Setor",
+    "Urgencia",
+    "Qtd_Pretas",
+    "Qtd_Azuis",
+    "Skates",
+    "Carrinhos",
+    "Status",
+    "Responsavel"
+]
+
+
 # ======================================================
 # FUNÇÕES AUXILIARES
 # ======================================================
@@ -47,26 +61,23 @@ def novo_id(prefixo):
     return f"{prefixo}{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
 def carregar_alertas():
-    dados = aba.get_all_records()
+    dados = aba_alertas.get_all_records()
 
-    # cria DF mesmo que a planilha esteja vazia
     df = pd.DataFrame(dados)
 
-    # garante TODAS as colunas esperadas
+    # garante colunas
     for col in COLUNAS:
         if col not in df.columns:
             df[col] = None
 
-    # agora é seguro acessar
     df["Data_Hora"] = pd.to_datetime(df["Data_Hora"], errors="coerce")
-
     df["Urgencia"] = df["Urgencia"].fillna("🟢 Pode esperar")
     df["Status"] = df["Status"].fillna("Aberto")
     df["Responsavel"] = df["Responsavel"].fillna("")
 
     return df
 
-
+  
 def carregar_lavagem():
     df = pd.DataFrame(aba_lavagem.get_all_records())
     for c in ["Chegada_Lavagem", "Inicio_Lavagem", "Fim_Lavagem"]:
@@ -278,4 +289,5 @@ with tabs[4]:
     dispersao = round((campo / TOTAL) * 100, 1)
 
     st.metric("Em circulação", campo, f"{dispersao}%")
+
 
