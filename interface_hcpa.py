@@ -5,91 +5,130 @@ from google.oauth2.service_account import Credentials
 from datetime import datetime
 import gspread_dataframe as spread
 
-# Configuração de Acesso (Usando o que já temos nos Secrets)
-scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scope)
+# -----------------------------
+# CONFIGURAÇÃO GOOGLE SHEETS
+# -----------------------------
+scope = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive"
+]
+
+creds = Credentials.from_service_account_info(
+    st.secrets["gcp_service_account"],
+    scopes=scope
+)
+
 client = gspread.authorize(creds)
 
-# Nome da sua planilha (Verifique se o nome está exatamente igual ao do Google Sheets)
 NOME_PLANILHA = "Gestao_Caixas_HCPA"
 
 try:
-planilha = client.open(NOME_PLANILHA)
-# Tenta abrir a aba db_alertas, se não existir, usa a primeira aba
-try:
-aba = planilha.worksheet("db_alertas")
-except:
-aba = planilha.get_worksheet(0)
+    planilha = client.open(NOME_PLANILHA)
+    aba_alertas = planilha.worksheet("db_alertas")
 except Exception as e:
-st.error(f"Erro ao abrir planilha: {e}")
-# --- INTERFACE ---
-st.title("📦 Logística de Caixas HCPA - Versão 2.0")
-# cria as abas
-tab1, tab2 = st.tabs(["Notificar Coleta", "Painel da Expedição"])
-# Captura de Setor via URL (Ex: ?setor=ONCO)
+    st.error(f"Erro ao abrir planilha ou aba db_alertas: {e}")
+    st.stop()
+
+# -----------------------------
+# LEITURA BASE ATUAL
+# -----------------------------
+dados_alertas = aba_alertas.get_all_records()
+df_alertas = pd.DataFrame(dados_alertas)
+
+# -----------------------------
+# INTERFACE
+# -----------------------------
+st.set_page_config(page_title="Logística de Caixas HCPA", layout="wide")
+st.title("📦 Logística de Caixas – HCPA | MVP")
+
+tab1, tab2 = st.tabs(["🔔 Notificar Coleta", "🚚 Painel da Expedição"])
+
+# Captura de Setor via QR (URL)
 query_params = st.query_params
 setor_url = query_params.get("setor", "Geral")
 
-with tab1: 
-st.form("form_notificacao"):
-st.header(f"🔔 Notificar Coleta: {setor_url}")
+# =============================
+# ABA 1 — SETOR (QR CODE)
+# =============================
+with tab1:
+    with st.form("form_notificacao"):
+        st.header(f"🔔 Notificar Coleta — Setor: {setor_url}")
 
-col1, col2 = st.columns(2)
+        col1, col2 = st.columns(2)
 
-with col1:
-st.subheader("Caixas Pretas")
-qtd_pretas = st.radio("Quantidade (Pretas)", ["0", "Até 05", "Até 10", "+ de 10"], key="pretas")
-skates = st.number_input("Quantidade de Skates", min_value=0, step=1)
+        with col1:
+            st.subheader("Caixas Pretas")
+            qtd_pretas = st.radio(
+                "Quantidade estimada",
+                ["0", "≤5", "≤10", ">10"]
+            )
+            skates = st.number_input(
+                "Skates disponíveis",
+                min_value=0,
+                step=1
+            )
 
-with col2:
-st.subheader("Caixas Azuis")
-qtd_azuis = st.radio("Quantidade (Azuis)", ["0", "Até 10", "Até 30", "+ de 30"], key="azuis")
-carrinhos = st.number_input("Quantidade de Carrinhos", min_value=0, step=1)
+        with col2:
+            st.subheader("Caixas Azuis")
+            qtd_azuis = st.radio(
+                "Quantidade estimada",
+                ["0", "≤30", ">30"]
+            )
+            carrinhos = st.number_input(
+                "Carrinhos disponíveis",
+                min_value=0,
+                step=1
+            )
 
-obs = st.text_area("Observações (Ex: Vazamento, Caixa Danificada)")
+        obs = st.text_area("Observações operacionais")
 
-submetido = st.form_submit_button("🚀 Enviar Alerta Inteligente")
+        submitted = st.form_submit_button("🚀 Enviar Alerta")
 
-if submetido:
-agora = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-id_alerta = f"ALT{len(df_alertas)+1:03d}"
+    if submitted:
+        agora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        novo_id = f"ALT{len(df_alertas) + 1:05d}"
 
-# Estrutura exatamente igual às colunas que você criou na planilha
-novo_alerta = pd.DataFrame([{
-"ID_Alerta": id_alerta,
-"Data_Hora": agora,
-"ID_Setor": setor_url,
-"Qtd_Pretas": qtd_pretas,
-"Qtd_Azuis": qtd_azuis,
-"Skates": skates,
-"Carrinhos": carrinhos,
-"Status": "Aberto",
-"Responsavel": "Aguardando"
-}])
+        novo_alerta = pd.DataFrame([{
+            "ID_Alerta": novo_id,
+            "Data_Hora_Notificacao": agora,
+            "ID_Setor": setor_url,
+            "Qtd_Pretas_Classe": qtd_pretas,
+            "Qtd_Azuis_Classe": qtd_azuis,
+            "Skates": skates,
+            "Carrinhos": carrinhos,
+            "Status": "Aberto"
+        }])
 
-# Envia para a planilha (aba db_alertas)
-spread.df_to_sheet(novo_alerta, sheet='db_alertas', index=False, append=True)
+        spread.df_to_sheet(
+            novo_alerta,
+            sheet="db_alertas",
+            index=False,
+            append=True
+        )
 
-st.success(f"✅ Alerta {id_alerta} enviado com sucesso!")
-st.balloons()
+        st.success(f"✅ Alerta {novo_id} registrado com sucesso!")
 
-# --- ABA 2: PAINEL DA EXPEDIÇÃO ---
+# =============================
+# ABA 2 — EXPEDIÇÃO
+# =============================
 with tab2:
-st.subheader("📊 Painel de Alertas em Aberto")
+    st.subheader("🚚 Alertas em Aberto")
 
-try:
-# Lê todos os dados da aba da planilha
-dados = aba.get_all_records()
+    if not df_alertas.empty:
+        df_abertos = df_alertas[df_alertas["Status"] == "Aberto"]
 
-if dados:
-import pandas as pd
-df_visualizacao = pd.DataFrame(dados)
-st.dataframe(df_visualizacao)
-else:
-st.info("Não há alertas registrados no momento.")
+        st.metric(
+            "Alertas em Aberto",
+            len(df_abertos)
+        )
 
-except Exception as e:
-st.error(f"Erro ao carregar dados: {e}")
+        st.dataframe(
+            df_abertos.sort_values("Data_Hora_Notificacao", ascending=False),
+            use_container_width=True
+        )
+    else:
+        st.info("Nenhum alerta registrado ainda.")
+
 
 
 
