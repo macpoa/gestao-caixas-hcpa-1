@@ -19,6 +19,12 @@ COLUNAS = [
 
 STATUS_ATIVOS = ["Aberto", "Em Coleta", "Coletado"]
 
+MAPA_URGENCIA = {
+    "🔴 Está atrapalhando": 3,
+    "🟡 Ideal coletar hoje": 2,
+    "🟢 Pode esperar": 1
+}
+
 # =============================
 # CONEXÃO GOOGLE SHEETS
 # =============================
@@ -42,7 +48,16 @@ aba = planilha.worksheet(ABA_ALERTAS)
 def carregar():
     dados = aba.get_all_records()
     df = pd.DataFrame(dados) if dados else pd.DataFrame(columns=COLUNAS)
+
+    # garante todas as colunas
+    for col in COLUNAS:
+        if col not in df.columns:
+            df[col] = None
+
     df["Data_Hora"] = pd.to_datetime(df["Data_Hora"], errors="coerce")
+    df["Urgencia"] = df["Urgencia"].fillna("🟢 Pode esperar")
+    df["Status"] = df["Status"].fillna("Aberto")
+
     return df
 
 def novo_id():
@@ -71,7 +86,6 @@ def criar_alerta(setor, urgencia, pretas, azuis, skates, carrinhos):
 st.title("📦 Logística de Caixas – HCPA")
 
 tabs = st.tabs(["🔔 Setor", "🚚 Expedição", "🧼 Lavagem", "🧠 Gestão", "📋 Inventário"])
-
 setor_url = st.query_params.get("setor", "Geral")
 
 # =============================
@@ -83,15 +97,15 @@ with tabs[0]:
     with st.form("setor"):
         urgencia = st.radio(
             "Impacto no trabalho",
-            ["🟢 Pode esperar", "🟡 Ideal coletar hoje", "🔴 Está atrapalhando"]
+            list(MAPA_URGENCIA.keys())
         )
 
         col1, col2 = st.columns(2)
         with col1:
-            pretas = st.radio("Caixas Pretas", ["0", "≤5", "≤10", " mais que 10"])
+            pretas = st.radio("Caixas Pretas", ["0", "≤5", "≤10", "mais que 10"])
             skates = st.number_input("Skates disponíveis", min_value=0)
         with col2:
-            azuis = st.radio("Caixas Azuis", ["0", "≤30", " mais que 30"])
+            azuis = st.radio("Caixas Azuis", ["0", "≤30", "mais que 30"])
             carrinhos = st.number_input("Carrinhos disponíveis", min_value=0)
 
         enviar = st.form_submit_button("🚀 Enviar alerta")
@@ -101,23 +115,22 @@ with tabs[0]:
         st.success("✅ Alerta enviado com sucesso")
 
 # =============================
-# ABA 2 — EXPEDIÇÃO (PRIORIZAÇÃO)
+# ABA 2 — EXPEDIÇÃO
 # =============================
 with tabs[1]:
     st.subheader("🚚 Ordem sugerida de coleta")
 
     df = carregar()
-    ativos = df[df["Status"].isin(["Aberto", "Em Coleta"])].copy()
+    ativos = df[df["Status"].isin(STATUS_ATIVOS)].copy()
 
     if ativos.empty:
         st.info("Nenhum alerta ativo")
     else:
-        ativos["Tempo_Aberto"] = (datetime.now() - ativos["Data_Hora"]).dt.total_seconds() / 60
-        ativos["Peso_Urgencia"] = ativos["Urgencia"].map({
-            "🔴 Está atrapalhando": 3,
-            "🟡 Ideal coletar hoje": 2,
-            "🟢 Pode esperar": 1
-        })
+        ativos["Tempo_Aberto"] = (
+            datetime.now() - ativos["Data_Hora"]
+        ).dt.total_seconds().fillna(0) / 60
+
+        ativos["Peso_Urgencia"] = ativos["Urgencia"].map(MAPA_URGENCIA).fillna(1)
 
         ativos = ativos.sort_values(
             by=["Peso_Urgencia", "Tempo_Aberto"],
@@ -149,16 +162,14 @@ with tabs[2]:
     df = carregar()
     coletados = df[df["Status"] == "Coletado"]
 
-    hoje = datetime.now().date()
     ultimos_7 = df[df["Data_Hora"] >= datetime.now() - timedelta(days=7)]
-
     media_diaria = round(len(ultimos_7) / 7, 1)
     pico = ultimos_7.groupby(ultimos_7["Data_Hora"].dt.date).size().max()
 
     c1, c2, c3 = st.columns(3)
     c1.metric("Aguardando lavagem", len(coletados))
     c2.metric("Média diária (7d)", media_diaria)
-    c3.metric("Pico recente", pico if pd.notna(pico) else 0)
+    c3.metric("Pico recente", int(pico) if pd.notna(pico) else 0)
 
     if len(coletados) < 20:
         st.warning("🔴 Volume abaixo do ideal para iniciar lote")
@@ -167,22 +178,11 @@ with tabs[2]:
     else:
         st.success("🟢 Lote eficiente")
 
-    with st.form("lavar"):
-        qtd = st.number_input("Quantidade lavada agora", min_value=1)
-        finalizar = st.form_submit_button("Finalizar lote")
-
-    if finalizar:
-        for id_alerta in coletados.head(qtd)["ID_Alerta"]:
-            atualizar_status(id_alerta, "Higienizado")
-        st.success("✅ Lote registrado")
-        st.rerun()
-
 # =============================
 # ABA 4 — GESTÃO
 # =============================
 with tabs[3]:
     st.subheader("🧠 Gestão Operacional")
-
     df = carregar()
 
     st.write("**Setores com mais impacto**")
@@ -219,14 +219,3 @@ with tabs[4]:
 
     if dispersao > 35:
         st.error("⚠️ Índice de dispersão acima do limite seguro")
-
-
-
-
-
-
-
-
-
-
-
