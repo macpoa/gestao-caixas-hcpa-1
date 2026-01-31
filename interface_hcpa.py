@@ -156,8 +156,8 @@ with tabs[1]:
                         st.markdown("### ✅ Finalizar coleta")
 
                         responsavel = st.text_input(
-                            "Cartão ponto do responsável (7 dígitos)",
-                            max_chars=7
+                            "Cartão ponto do responsável",
+                            max_chars=10
                         )
 
                         col1, col2 = st.columns(2)
@@ -175,8 +175,8 @@ with tabs[1]:
                         confirmar = st.form_submit_button("✔️ Confirmar coleta")
 
                     if confirmar:
-                        if not responsavel.isdigit() or len(responsavel) != 7:
-                            st.error("⚠️ Informe um cartão ponto válido (7 dígitos)")
+                        if not responsavel.isdigit() or len(responsavel) > 10:
+                            st.error("⚠️ Informe um cartão ponto válido (até 10 dígitos)")
                         else:
                             # Atualiza alerta atual
                             atualizar_status(row["ID_Alerta"], "Coletado")
@@ -262,5 +262,6 @@ with tabs[4]:
 
     if dispersao > 35:
         st.error("⚠️ Índice de dispersão acima do limite seguro")
+
 
 
