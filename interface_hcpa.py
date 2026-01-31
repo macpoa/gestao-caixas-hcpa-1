@@ -40,7 +40,7 @@ df_alertas = pd.DataFrame(dados_alertas)
 st.set_page_config(page_title="Logística de Caixas HCPA", layout="wide")
 st.title("📦 Logística de Caixas – HCPA | MVP")
 
-tab1, tab2, tab3, tab4 = st.tabs(["🔔 Setor", "🚚 Expedição", "🧼 Lavagem", "🧠 Gestão"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["🔔 Setor", "🚚 Expedição", "🧼 Lavagem", "🧠 Gestão", "📋 Inventário"])
 
 # Captura de Setor via QR (URL)
 query_params = st.query_params
@@ -209,6 +209,69 @@ with tab4:
         if not atrasados.empty:
             st.warning(f"⚠️ Existem {len(atrasados)} alertas parados há mais de {tempo_limite} min!")
 
+# =============================
+# ABA 5 — INVENTÁRIO DE CAIXAS
+# =============================
+with tab5:
+    st.header("📋 Inventário de Ativos")
+    
+    # 1. Definição do Patrimônio Total (Ajuste conforme sua realidade)
+    TOTAL_CAIXAS_SISTEMA = 500  # Exemplo: total que o hospital possui
+    
+    st.info(f"Patrimônio Total Cadastrado: **{TOTAL_CAIXAS_SISTEMA} unidades**")
+
+    # 2. Inputs de Contagem Real (O que a expedição enxerga)
+    with st.expander("📝 Atualizar Contagem Física (Estoque/Expedição)", expanded=True):
+        col1, col2 = st.columns(2)
+        with col1:
+            prontas = st.number_input("Prontas para Uso (Limpas)", min_value=0, value=100)
+            em_separacao = st.number_input("Em Separação", min_value=0, value=50)
+        with col2:
+            aguardando_entrega = st.number_input("Aguardando Entrega", min_value=0, value=30)
+            em_lavagem = st.number_input("Na Lavanderia (Em processo)", min_value=0, value=40)
+
+    # 3. Lógica do "Cérebro"
+    # Somamos o que está "dentro de casa"
+    caixas_internas = prontas + em_separacao + aguardando_entrega + em_lavagem
+    
+    # O que sobra, por exclusão, está nos setores ou pontos de coleta
+    caixas_no_campo = TOTAL_CAIXAS_SISTEMA - caixas_internas
+    
+    # Cálculo do percentual no campo
+    percentual_campo = (caixas_no_campo / TOTAL_CAIXAS_SISTEMA) * 100
+    limite_alerta = 30.0  # Seu limite de 30%
+
+    # 4. Exibição dos Indicadores
+    st.divider()
+    c1, c2, c3 = st.columns(3)
+    
+    c1.metric("Localizadas (Controle)", caixas_internas)
+    
+    # Cor do indicador de campo: Vermelho se passar de 30%
+    cor_delta = "normal" if percentual_campo <= limite_alerta else "inverse"
+    c2.metric(
+        "Em Circulação (Setores/Coleta)", 
+        caixas_no_campo, 
+        f"{percentual_campo:.1f}% do total",
+        delta_color=cor_delta
+    )
+    
+    c3.metric("Status do Giro", "Saudável" if percentual_campo <= limite_alerta else "Crítico")
+
+    # 5. Alerta Visual
+    if percentual_campo > limite_alerta:
+        st.error(f"⚠️ **Atenção:** O volume de caixas espalhadas nos setores ({percentual_campo:.1f}%) ultrapassou o limite de segurança de {limite_alerta}%. Risco de desabastecimento na expedição!")
+    else:
+        st.success("✅ Fluxo de caixas dentro dos parâmetros operacionais.")
+
+    # Opcional: Gráfico de Pizza para visualização rápida
+    df_pizza = pd.DataFrame({
+        "Categoria": ["Prontas", "Separação", "Entrega", "Lavagem", "Nos Setores"],
+        "Quantidade": [prontas, em_separacao, aguardando_entrega, em_lavagem, caixas_no_campo]
+    })
+    import plotly.express as px
+    fig = px.pie(df_pizza, values='Quantidade', names='Categoria', title="Distribuição do Inventário")
+    st.plotly_chart(fig)
 
 
 
