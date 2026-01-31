@@ -12,7 +12,7 @@ st.set_page_config(page_title="Logística de Caixas HCPA", layout="wide")
 NOME_PLANILHA = "Gestao_Caixas_HCPA"
 ABA_ALERTAS = "db_alertas"
 ABA_LAVAGEM = "db_lavagem"
-
+COLUNAS = ["ID_Alerta", "Data_Hora", "ID_Setor", "Urgencia", "Qtd_Pretas", "Qtd_Azuis", "Skates", "Carrinhos", "Status", "Responsavel"]
 STATUS_ATIVOS = ["Aberto", "Em Coleta", "Coletado"]
 
 MAPA_URGENCIA = {
@@ -201,39 +201,38 @@ with tabs[2]:
         st.success("✅ Lote iniciado")
         st.rerun()
 
-    # FECHAR LOTE
+    # FECHAR LOTE (Ajustado)
     df_lav = carregar_lavagem()
-    
-
     ativos = df_lav[df_lav["Status"] == "Em Lavagem"]
 
     for _, row in ativos.iterrows():
         with st.expander(f"🧺 {row['ID_Lote']} | {row['Turno']}"):
             with st.form(f"fechar_{row['ID_Lote']}"):
-                p = st.number_input("Pretas lavadas", min_value=0)
-                a = st.number_input("Azuis lavadas", min_value=0)
+                p = st.number_input("Pretas lavadas", min_value=0, key=f"p_{row['ID_Lote']}")
+                a = st.number_input("Azuis lavadas", min_value=0, key=f"a_{row['ID_Lote']}")
                 fechar = st.form_submit_button("✔️ Fechar lote")
 
             if fechar:
-                total_ent = (row["Qtd_Pretas_Entrada"] or 0) + (row["Qtd_Azuis_Entrada"] or 0)
-                total_lav = p + a
-                diff = total_lav - total_ent
-
+                # Localiza a linha correta
                 cell = aba_lavagem.find(row["ID_Lote"])
                 r = cell.row
-                entrada = (row["Qtd_Pretas"] or 0) + (row["Qtd_Azuis"] or 0)
-                lavadas = pretas_lavadas + azuis_lavadas
+                
+                # Cálculo da diferença
+                entrada = (row["Qtd_Pretas_Entrada"] or 0) + (row["Qtd_Azuis_Entrada"] or 0)
+                lavadas = p + a
                 diferenca = lavadas - entrada
+                
+                # Atualiza as colunas E até J (Pretas_Lav, Azuis_Lav, Dif, Status, Prev, Fim)
                 aba_lavagem.update(f"E{r}:J{r}", [[
-                   pretas_lavadas,
-                   azuis_lavadas,
-                   diferenca,
-                   "Finalizado",
-                   row["Previsao_Termin"],
-                   datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                 ]])
+                    p, 
+                    a, 
+                    diferenca, 
+                    "Finalizado", 
+                    row["Previsao_Termin"], 
+                    datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                ]])
 
-                st.success("✅ Lote finalizado")
+                st.success(f"✅ Lote {row['ID_Lote']} finalizado!")
                 st.rerun()
 
 # ======================================================
@@ -282,6 +281,7 @@ with tabs[4]:
     dispersao = round((campo / TOTAL) * 100, 1)
 
     st.metric("Em circulação", campo, f"{dispersao}%")
+
 
 
 
