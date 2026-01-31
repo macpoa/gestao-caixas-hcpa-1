@@ -14,8 +14,10 @@ ABA_ALERTAS = "db_alertas"
 
 COLUNAS = [
     "ID_Alerta", "Data_Hora", "ID_Setor", "Urgencia",
-    "Qtd_Pretas", "Qtd_Azuis", "Skates", "Carrinhos", "Status"
+    "Qtd_Pretas", "Qtd_Azuis", "Skates", "Carrinhos",
+    "Status", "Responsavel"
 ]
+
 
 STATUS_ATIVOS = ["Aberto", "Em Coleta", "Coletado"]
 
@@ -66,6 +68,18 @@ def novo_id():
 def atualizar_status(id_alerta, status):
     cell = aba.find(id_alerta)
     aba.update_cell(cell.row, COLUNAS.index("Status") + 1, status)
+
+def atualizar_responsavel(id_alerta, responsavel):
+    try:
+        cell = aba.find(id_alerta)
+        aba.update_cell(
+            cell.row,
+            COLUNAS.index("Responsavel") + 1,
+            responsavel
+        )
+    except Exception as e:
+        st.error(f"Erro ao registrar responsável: {e}")
+
 
 def criar_alerta(setor, urgencia, pretas, azuis, skates, carrinhos):
     aba.append_row([
@@ -275,6 +289,7 @@ with tabs[4]:
 
     if dispersao > 35:
         st.error("⚠️ Índice de dispersão acima do limite seguro")
+
 
 
 
