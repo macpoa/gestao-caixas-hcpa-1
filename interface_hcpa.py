@@ -4,20 +4,14 @@ import pandas as pd
 from google.oauth2.service_account import Credentials
 from datetime import datetime, timedelta
 
-# =============================
+# ======================================================
 # CONFIGURAÇÃO
-# =============================
+# ======================================================
 st.set_page_config(page_title="Logística de Caixas HCPA", layout="wide")
 
 NOME_PLANILHA = "Gestao_Caixas_HCPA"
 ABA_ALERTAS = "db_alertas"
-
-COLUNAS = [
-    "ID_Alerta", "Data_Hora", "ID_Setor", "Urgencia",
-    "Qtd_Pretas", "Qtd_Azuis", "Skates", "Carrinhos",
-    "Status", "Responsavel"
-]
-
+ABA_LAVAGEM = "db_lavagem"
 
 STATUS_ATIVOS = ["Aberto", "Em Coleta", "Coletado"]
 
@@ -27,9 +21,9 @@ MAPA_URGENCIA = {
     "🟢 Pode esperar": 1
 }
 
-# =============================
+# ======================================================
 # CONEXÃO GOOGLE SHEETS
-# =============================
+# ======================================================
 scope = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive"
@@ -42,255 +36,231 @@ creds = Credentials.from_service_account_info(
 
 client = gspread.authorize(creds)
 planilha = client.open(NOME_PLANILHA)
-aba = planilha.worksheet(ABA_ALERTAS)
 
-# =============================
-# FUNÇÕES
-# =============================
-def carregar():
-    dados = aba.get_all_records()
-    df = pd.DataFrame(dados) if dados else pd.DataFrame(columns=COLUNAS)
+aba_alertas = planilha.worksheet(ABA_ALERTAS)
+aba_lavagem = planilha.worksheet(ABA_LAVAGEM)
 
-    # garante todas as colunas
-    for col in COLUNAS:
-        if col not in df.columns:
-            df[col] = None
+# ======================================================
+# FUNÇÕES AUXILIARES
+# ======================================================
+def novo_id(prefixo):
+    return f"{prefixo}{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
+def carregar_alertas():
+    df = pd.DataFrame(aba_alertas.get_all_records())
     df["Data_Hora"] = pd.to_datetime(df["Data_Hora"], errors="coerce")
     df["Urgencia"] = df["Urgencia"].fillna("🟢 Pode esperar")
     df["Status"] = df["Status"].fillna("Aberto")
-
     return df
 
-def novo_id():
-    return f"ALT{datetime.now().strftime('%Y%m%d%H%M%S')}"
+def carregar_lavagem():
+    df = pd.DataFrame(aba_lavagem.get_all_records())
+    for c in ["Chegada_Lavagem", "Inicio_Lavagem", "Fim_Lavagem"]:
+        df[c] = pd.to_datetime(df[c], errors="coerce")
+    return df
 
-def atualizar_status(id_alerta, status):
-    cell = aba.find(id_alerta)
-    aba.update_cell(cell.row, COLUNAS.index("Status") + 1, status)
+def atualizar_alerta(id_alerta, status, responsavel=None):
+    cell = aba_alertas.find(id_alerta)
+    row = cell.row
+    aba_alertas.update_cell(row, 9, status)
+    if responsavel:
+        aba_alertas.update_cell(row, 10, responsavel)
 
-def atualizar_responsavel(id_alerta, responsavel):
-    try:
-        cell = aba.find(id_alerta)
-        aba.update_cell(
-            cell.row,
-            COLUNAS.index("Responsavel") + 1,
-            responsavel
-        )
-    except Exception as e:
-        st.error(f"Erro ao registrar responsável: {e}")
-
-
-def criar_alerta(setor, urgencia, pretas, azuis, skates, carrinhos):
-    aba.append_row([
-        novo_id(),
-        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        setor,
-        urgencia,
-        pretas,
-        azuis,
-        skates,
-        carrinhos,
-        "Aberto"
-    ], value_input_option="USER_ENTERED")
-
-# =============================
+# ======================================================
 # INTERFACE
-# =============================
+# ======================================================
 st.title("📦 Logística de Caixas – HCPA")
-
 tabs = st.tabs(["🔔 Setor", "🚚 Expedição", "🧼 Lavagem", "🧠 Gestão", "📋 Inventário"])
 setor_url = st.query_params.get("setor", "Geral")
 
-# =============================
+# ======================================================
 # ABA 1 — SETOR
-# =============================
+# ======================================================
 with tabs[0]:
     st.header(f"🔔 Notificar Coleta — {setor_url}")
 
     with st.form("setor"):
-        urgencia = st.radio(
-            "Impacto no trabalho",
-            list(MAPA_URGENCIA.keys())
-        )
+        urgencia = st.radio("Impacto no trabalho", list(MAPA_URGENCIA.keys()))
 
-        col1, col2 = st.columns(2)
-        with col1:
+        c1, c2 = st.columns(2)
+        with c1:
             pretas = st.radio("Caixas Pretas", ["0", "≤5", "≤10", "mais que 10"])
             skates = st.number_input("Skates disponíveis", min_value=0)
-        with col2:
+        with c2:
             azuis = st.radio("Caixas Azuis", ["0", "≤30", "mais que 30"])
             carrinhos = st.number_input("Carrinhos disponíveis", min_value=0)
 
         enviar = st.form_submit_button("🚀 Enviar alerta")
 
     if enviar:
-        criar_alerta(setor_url, urgencia, pretas, azuis, skates, carrinhos)
-        st.success("✅ Alerta enviado com sucesso")
+        aba_alertas.append_row([
+            novo_id("ALT"),
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            setor_url,
+            urgencia,
+            pretas,
+            azuis,
+            skates,
+            carrinhos,
+            "Aberto",
+            ""
+        ])
+        st.success("✅ Alerta enviado")
 
-# =============================
+# ======================================================
 # ABA 2 — EXPEDIÇÃO (POR SETOR)
-# =============================
+# ======================================================
 with tabs[1]:
     st.subheader("🚚 Ordem sugerida de coleta por setor")
 
-    df = carregar()
+    df = carregar_alertas()
     ativos = df[df["Status"].isin(STATUS_ATIVOS)].copy()
 
     if ativos.empty:
         st.info("Nenhum alerta ativo")
     else:
-        agora = datetime.now()
-
         ativos["Tempo_Aberto"] = (
-            agora - ativos["Data_Hora"]
+            datetime.now() - ativos["Data_Hora"]
         ).dt.total_seconds().fillna(0) / 60
 
-        ativos["Peso_Urgencia"] = ativos["Urgencia"].map(MAPA_URGENCIA).fillna(1)
+        ativos["Peso"] = ativos["Urgencia"].map(MAPA_URGENCIA).fillna(1)
 
-        # 🔹 AGREGAÇÃO POR SETOR
-        resumo_setor = (
-            ativos
-            .groupby("ID_Setor")
+        resumo = (
+            ativos.groupby("ID_Setor")
             .agg(
-                Qtde_Alertas=("ID_Alerta", "count"),
+                Qtde=("ID_Alerta", "count"),
                 Tempo_Max=("Tempo_Aberto", "max"),
-                Peso_Max=("Peso_Urgencia", "max"),
+                Peso_Max=("Peso", "max")
             )
             .reset_index()
+            .sort_values(by=["Peso_Max", "Tempo_Max"], ascending=False)
         )
 
-        # 🔹 ORDENAÇÃO ESTRATÉGICA
-        resumo_setor = resumo_setor.sort_values(
-            by=["Peso_Max", "Tempo_Max"],
-            ascending=False
-        )
+        for _, s in resumo.iterrows():
+            setor = s["ID_Setor"]
+            df_setor = ativos[ativos["ID_Setor"] == setor]
 
-        for _, setor in resumo_setor.iterrows():
-            setor_nome = setor["ID_Setor"]
+            with st.expander(f"📍 {setor} | {int(s['Tempo_Max'])} min | {int(s['Qtde'])} avisos"):
+                st.table(df_setor[["Urgencia", "Qtd_Pretas", "Qtd_Azuis", "Status", "Data_Hora"]])
 
-            with st.expander(
-                f"📍 {setor_nome} | "
-                f"{int(setor['Tempo_Max'])} min | "
-                f"{int(setor['Qtde_Alertas'])} avisos"
-            ):
-                df_setor = ativos[ativos["ID_Setor"] == setor_nome]
-
-                st.markdown("**Alertas ativos neste setor:**")
-                st.table(
-                    df_setor[
-                        ["Urgencia", "Qtd_Pretas", "Qtd_Azuis", "Status", "Data_Hora"]
-                    ]
-                )
-
-                with st.form(f"form_setor_{setor_nome}"):
-                    st.markdown("### ✅ Finalizar coleta do setor")
-
-                    responsavel = st.text_input(
-                        "Cartão ponto do responsável",
-                        max_chars=10,
-                        key=f"resp_{setor_nome}"
-                    )
-
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        pretas_real = st.number_input(
-                            "Pretas coletadas (total setor)",
-                            min_value=0,
-                            key=f"pr_{setor_nome}"
-                        )
-                    with col2:
-                        azuis_real = st.number_input(
-                            "Azuis coletadas (total setor)",
-                            min_value=0,
-                            key=f"az_{setor_nome}"
-                        )
-
+                with st.form(f"coleta_{setor}"):
+                    resp = st.text_input("Cartão ponto (até 10 dígitos)", max_chars=10)
                     confirmar = st.form_submit_button("✔️ Confirmar coleta do setor")
 
                 if confirmar:
-                    if not responsavel.isdigit() or len(responsavel) > 10:
-                        st.error("⚠️ Informe um cartão ponto válido (até 10 dígitos)")
+                    if not resp.isdigit():
+                        st.error("Cartão ponto inválido")
                     else:
-                        # Fecha TODOS os alertas do setor
                         for id_alerta in df_setor["ID_Alerta"]:
-                            atualizar_status(id_alerta, "Coletado")
-                            atualizar_responsavel(id_alerta, responsavel)
-
-                        st.success(
-                            f"✅ Coleta do setor **{setor_nome}** registrada com sucesso"
-                        )
+                            atualizar_alerta(id_alerta, "Coletado", resp)
+                        st.success("✅ Coleta registrada")
                         st.rerun()
 
-
-# =============================
+# ======================================================
 # ABA 3 — LAVAGEM
-# =============================
+# ======================================================
 with tabs[2]:
-    st.subheader("🧼 Planejamento da Lavagem")
+    st.subheader("🧼 Lavagem de Caixas")
 
-    df = carregar()
-    coletados = df[df["Status"] == "Coletado"]
+    # REGISTRAR CHEGADA
+    with st.form("chegada_lavagem"):
+        c1, c2 = st.columns(2)
+        with c1:
+            pretas = st.number_input("Pretas que chegaram", min_value=0)
+        with c2:
+            azuis = st.number_input("Azuis que chegaram", min_value=0)
 
-    ultimos_7 = df[df["Data_Hora"] >= datetime.now() - timedelta(days=7)]
-    media_diaria = round(len(ultimos_7) / 7, 1)
-    pico = ultimos_7.groupby(ultimos_7["Data_Hora"].dt.date).size().max()
+        turno = st.selectbox("Turno", ["Manhã", "Tarde", "Noite"])
+        enviar = st.form_submit_button("Registrar chegada")
+
+    if enviar:
+        agora = datetime.now()
+        aba_lavagem.append_row([
+            novo_id("LOT"),
+            agora.strftime("%Y-%m-%d %H:%M:%S"),
+            pretas,
+            azuis,
+            "",
+            "",
+            "",
+            "Em Lavagem",
+            agora.strftime("%Y-%m-%d %H:%M:%S"),
+            "",
+            turno
+        ])
+        st.success("✅ Lote iniciado")
+        st.rerun()
+
+    # FECHAR LOTE
+    df_lav = carregar_lavagem()
+    ativos = df_lav[df_lav["Status"] == "Em Lavagem"]
+
+    for _, row in ativos.iterrows():
+        with st.expander(f"🧺 {row['ID_Lote']} | {row['Turno']}"):
+            with st.form(f"fechar_{row['ID_Lote']}"):
+                p = st.number_input("Pretas lavadas", min_value=0)
+                a = st.number_input("Azuis lavadas", min_value=0)
+                fechar = st.form_submit_button("✔️ Fechar lote")
+
+            if fechar:
+                total_ent = (row["Qtd_Pretas_Entrada"] or 0) + (row["Qtd_Azuis_Entrada"] or 0)
+                total_lav = p + a
+                diff = total_lav - total_ent
+
+                cell = aba_lavagem.find(row["ID_Lote"])
+                r = cell.row
+
+                aba_lavagem.update(f"E{r}:J{r}", [[
+                    p, a, diff, "Finalizado",
+                    row["Inicio_Lavagem"].strftime("%Y-%m-%d %H:%M:%S"),
+                    datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                ]])
+                st.success("✅ Lote finalizado")
+                st.rerun()
+
+# ======================================================
+# ABA 4 — GESTÃO
+# ======================================================
+with tabs[3]:
+    st.subheader("📊 Indicadores")
+
+    df_lav = carregar_lavagem()
+    final = df_lav[df_lav["Status"] == "Finalizado"].copy()
+
+    final["Tempo"] = (
+        final["Fim_Lavagem"] - final["Inicio_Lavagem"]
+    ).dt.total_seconds() / 3600
+
+    backlog = (
+        df_lav["Qtd_Pretas_Entrada"].sum() + df_lav["Qtd_Azuis_Entrada"].sum()
+    ) - (
+        df_lav["Qtd_Pretas_Lavadas"].sum() + df_lav["Qtd_Azuis_Lavadas"].sum()
+    )
 
     c1, c2, c3 = st.columns(3)
-    c1.metric("Aguardando lavagem", len(coletados))
-    c2.metric("Média diária (7d)", media_diaria)
-    c3.metric("Pico recente", int(pico) if pd.notna(pico) else 0)
+    c1.metric("Backlog real", backlog)
+    c2.metric("Tempo médio (h)", round(final["Tempo"].mean(), 2))
+    c3.metric("Eficiência (%)",
+              round((final["Qtd_Pretas_Lavadas"].sum() + final["Qtd_Azuis_Lavadas"].sum())
+                    / max(1, final["Qtd_Pretas_Entrada"].sum() + final["Qtd_Azuis_Entrada"].sum()) * 100, 1))
 
-    if len(coletados) < 20:
-        st.warning("🔴 Volume abaixo do ideal para iniciar lote")
-    elif len(coletados) < 40:
-        st.info("🟡 Lote aceitável")
-    else:
-        st.success("🟢 Lote eficiente")
+    st.bar_chart(final.groupby("Turno")["Qtd_Pretas_Lavadas"].sum() +
+                 final.groupby("Turno")["Qtd_Azuis_Lavadas"].sum())
 
-# =============================
-# ABA 4 — GESTÃO
-# =============================
-with tabs[3]:
-    st.subheader("🧠 Gestão Operacional")
-    df = carregar()
-
-    st.write("**Setores com mais impacto**")
-    st.bar_chart(df["ID_Setor"].value_counts())
-
-    st.write("**Distribuição por status**")
-    st.table(df["Status"].value_counts())
-
-# =============================
+# ======================================================
 # ABA 5 — INVENTÁRIO
-# =============================
+# ======================================================
 with tabs[4]:
     st.subheader("📋 Inventário por Exclusão")
 
     TOTAL = 1000
-    st.info(f"Patrimônio total: {TOTAL}")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        prontas = st.number_input("Prontas", min_value=0, value=120)
-        separacao = st.number_input("Em separação", min_value=0, value=60)
-    with col2:
-        entrega = st.number_input("Aguardando entrega", min_value=0, value=40)
-        lavagem = st.number_input("Na lavagem", min_value=0, value=50)
+    prontas = st.number_input("Prontas", 0)
+    separacao = st.number_input("Em separação", 0)
+    entrega = st.number_input("Aguardando entrega", 0)
+    lavagem = st.number_input("Na lavagem", 0)
 
     internas = prontas + separacao + entrega + lavagem
     campo = TOTAL - internas
     dispersao = round((campo / TOTAL) * 100, 1)
 
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Sob controle", internas)
-    c2.metric("Em circulação", campo, f"{dispersao}%")
-    c3.metric("Status", "🔴 Crítico" if dispersao > 35 else "🟢 Saudável")
-
-    if dispersao > 35:
-        st.error("⚠️ Índice de dispersão acima do limite seguro")
-
-
-
-
-
+    st.metric("Em circulação", campo, f"{dispersao}%")
