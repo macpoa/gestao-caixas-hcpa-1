@@ -221,17 +221,17 @@ with tabs[2]:
 
                 cell = aba_lavagem.find(row["ID_Lote"])
                 r = cell.row
-            entrada = (row["Qtd_Pretas"] or 0) + (row["Qtd_Azuis"] or 0)
-            lavadas = pretas_lavadas + azuis_lavadas
-            diferenca = lavadas - entrada
-               aba_lavagem.update(f"E{r}:J{r}", [[
-                  pretas_lavadas,
-                  azuis_lavadas,
-                  diferenca,
-                  "Finalizado",
-                  row["Previsao_Termin"],
-                  datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                ]])
+                entrada = (row["Qtd_Pretas"] or 0) + (row["Qtd_Azuis"] or 0)
+                lavadas = pretas_lavadas + azuis_lavadas
+                diferenca = lavadas - entrada
+                aba_lavagem.update(f"E{r}:J{r}", [[
+                   pretas_lavadas,
+                   azuis_lavadas,
+                   diferenca,
+                   "Finalizado",
+                   row["Previsao_Termin"],
+                   datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                 ]])
 
                 st.success("✅ Lote finalizado")
                 st.rerun()
@@ -282,5 +282,6 @@ with tabs[4]:
     dispersao = round((campo / TOTAL) * 100, 1)
 
     st.metric("Em circulação", campo, f"{dispersao}%")
+
 
 
