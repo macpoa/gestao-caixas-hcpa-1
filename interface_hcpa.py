@@ -10,11 +10,40 @@ from datetime import datetime, timedelta
 st.set_page_config(page_title="Logística de Caixas HCPA", layout="wide")
 
 NOME_PLANILHA = "Gestao_Caixas_HCPA"
-ABA_ALERTAS = "db_alertas"
-ABA_LAVAGEM = "db_lavagem"
-ABA_SETORES = "db_setores"
-ABA_HISTORICO = "db_historico"
-COLUNAS = ["ID_Alerta", "Data_Hora", "ID_Setor", "Urgencia", "Qtd_Pretas", "Qtd_Azuis", "Skates", "Carrinhos", "Status", "Responsavel","ID_Lote","Chegada_Lavagem","Qtd_Pretas","Qtd_Azuis","Status","Previsao_Termino","Inicio_Lavagem","Fim_Lavagem","ID_Setor","Nome_Setor","Bloco","Andar","Distancia_Metros","Prioridade"]
+
+# nomes das abas na planilha
+ABA_ALERTAS   = "db_alerta"      # cuidado: na planilha está db_alerta (sem s)
+ABA_LAVAGEM   = "db_lavagem"
+ABA_SETORES   = "db_setores"
+ABA_HISTORICO = "db_Historico"   # respeitar maiúsculas/minúsculas
+
+# colunas esperadas em cada aba
+COL_ALERTAS = [
+    "ID_Alerta", "Data_Hora", "ID_Setor", "Urgencia",
+    "Setor_Nome", "Qtd_Pretas", "Qtd_Azuis",
+    "Skates", "Carrinhos", "Status", "Responsavel"
+]
+
+COL_SETORES = [
+    "ID_Setor", "Nome_Setor", "Bloco",
+    "Andar", "Distancia_Metros", "Prioridade"
+]
+
+COL_LAVAGEM = [
+    "ID_Lote", "Chegada_Lavagem",
+    "Qtd_Pretas_Entrada", "Qtd_Azuis_Entrada",
+    "Qtd_Pretas_Lavadas", "Qtd_Azuis_Lavadas",
+    "Diferenca", "Status",
+    "Previsao_Termino", "Inicio_Lavagem",
+    "Fim_Lavagem", "Turno"
+]
+
+COL_HISTORICO = [
+    "ID_Alerta", "Data_Hora", "ID_Setor",
+    "Setor_Nome", "Qtd_Pretas", "Qtd_Azuis",
+    "Skates", "Carrinhos", "Status", "Responsavel"
+]
+
 STATUS_ATIVOS = ["Aberto", "Em Coleta", "Coletado"]
 
 MAPA_URGENCIA = {
@@ -48,49 +77,27 @@ aba_lavagem = planilha.worksheet(ABA_LAVAGEM)
 def novo_id(prefixo):
     return f"{prefixo}{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
-def carregar_alertas():
-    dados = aba_alertas.get_all_records()
-
-    df = pd.DataFrame(dados)
-
-    # garante colunas
-    for col in COLUNAS:
+def carregar_lavagem():
+    df = pd.DataFrame(aba_lavagem.get_all_records())
+    for col in COL_LAVAGEM:
         if col not in df.columns:
             df[col] = None
+    for c in ["Chegada_Lavagem", "Inicio_Lavagem", "Fim_Lavagem", "Previsao_Termino"]:
+        df[c] = pd.to_datetime(df[c], errors="coerce")
+    return df
 
+
+def carregar_alertas():
+    df = pd.DataFrame(aba_alertas.get_all_records())
+    for col in COL_ALERTAS:
+        if col not in df.columns:
+            df[col] = None
     df["Data_Hora"] = pd.to_datetime(df["Data_Hora"], errors="coerce")
     df["Urgencia"] = df["Urgencia"].fillna("🟢 Pode esperar")
     df["Status"] = df["Status"].fillna("Aberto")
     df["Responsavel"] = df["Responsavel"].fillna("")
-
     return df
 
-def carregar_lavagem():
-    df = pd.DataFrame(aba_lavagem.get_all_records())
-
-    # garante que as colunas existam
-    for col in [
-        "ID_Lote",
-        "Chegada_Lavagem",
-        "Qtd_Pretas_Entrada",
-        "Qtd_Azuis_Entrada",
-        "Qtd_Pretas_Lavadas",
-        "Qtd_Azuis_Lavadas",
-        "Diferenca",
-        "Status",
-        "Previsao_Termino",
-        "Inicio_Lavagem",
-        "Fim_Lavagem",
-        "Turno",
-    ]:
-        if col not in df.columns:
-            df[col] = None
-
-    # agora sim converte as de data/hora
-    for c in ["Chegada_Lavagem", "Inicio_Lavagem", "Fim_Lavagem", "Previsao_Termino"]:
-        df[c] = pd.to_datetime(df[c], errors="coerce")
-
-    return df
 
 
 def atualizar_alerta(id_alerta, status, responsavel=None):
@@ -307,6 +314,7 @@ with tabs[4]:
     dispersao = round((campo / TOTAL) * 100, 1)
 
     st.metric("Em circulação", campo, f"{dispersao}%")
+
 
 
 
