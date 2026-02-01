@@ -248,10 +248,26 @@ with tabs[1]:
 with tabs[2]:
     st.subheader("🧼 Lavagem de Caixas")
 
-    # carregar todos os lotes
+    # Carrega todos os lotes da aba db_lavagem
     df_lav = carregar_lavagem()
 
-    # mostrar painel de lotes em lavagem
+    # ---------- 1) VISÃO GERAL: TOTAIS PENDENTES ----------
+    total_entrada_pretas = df_lav["Qtd_Pretas_Entrada"].fillna(0).astype(int).sum()
+    total_entrada_azuis  = df_lav["Qtd_Azuis_Entrada"].fillna(0).astype(int).sum()
+
+    total_lavadas_pretas = df_lav["Qtd_Pretas_Lavadas"].fillna(0).astype(int).sum()
+    total_lavadas_azuis  = df_lav["Qtd_Azuis_Lavadas"].fillna(0).astype(int).sum()
+
+    pend_pretas = total_entrada_pretas - total_lavadas_pretas
+    pend_azuis  = total_entrada_azuis  - total_lavadas_azuis
+
+    c1, c2 = st.columns(2)
+    c1.metric("Caixas pretas pendentes de lavagem", pend_pretas)
+    c2.metric("Caixas azuis pendentes de lavagem", pend_azuis)
+
+    st.markdown("---")
+
+    # ---------- 2) LOTES EM LAVAGEM ----------
     em_lavagem = df_lav[df_lav["Status"] == "Em Lavagem"].copy()
 
     if em_lavagem.empty:
@@ -266,76 +282,29 @@ with tabs[2]:
                     "Qtd_Pretas_Entrada",
                     "Qtd_Azuis_Entrada",
                     "Status",
+                    "Turno",
                 ]
             ]
         )
 
-    # (aqui você mantém o restante do código de registrar chegada manual,
-    # ou decide se vai usar apenas os lotes gerados pela expedição)
+    st.markdown("---")
 
+    # ---------- 3) REGISTRAR NOVA CHEGADA (opcional/manual) ----------
+    st.subheader("Registrar manualmente um novo lote que chegou à lavagem")
 
-    # REGISTRAR CHEGADA
     with st.form("chegada_lavagem"):
         c1, c2 = st.columns(2)
         with c1:
-            pretas = st.number_input("Pretas que chegaram", min_value=0)
+            pretas_ent = st.number_input("Pretas que chegaram", min_value=0, step=1)
         with c2:
-            azuis = st.number_input("Azuis que chegaram", min_value=0)
+            azuis_ent = st.number_input("Azuis que chegaram", min_value=0, step=1)
 
         turno = st.selectbox("Turno", ["Manhã", "Tarde", "Noite"])
         enviar = st.form_submit_button("Registrar chegada")
 
     if enviar:
         agora = datetime.now()
-        aba_lavagem.append_row([
-            novo_id("LOT"),
-            agora.strftime("%Y-%m-%d %H:%M:%S"),
-            pretas,
-            azuis,
-            "",
-            "",
-            "",
-            "Em Lavagem",
-            agora.strftime("%Y-%m-%d %H:%M:%S"),
-            "",
-            turno
-        ])
-        st.success("✅ Lote iniciado")
-        st.rerun()
-
-    # FECHAR LOTE (Ajustado)
-    df_lav = carregar_lavagem()
-    ativos = df_lav[df_lav["Status"] == "Em Lavagem"]
-
-    for _, row in ativos.iterrows():
-        with st.expander(f"🧺 {row['ID_Lote']} | {row['Turno']}"):
-            with st.form(f"fechar_{row['ID_Lote']}"):
-                p = st.number_input("Pretas lavadas", min_value=0, key=f"p_{row['ID_Lote']}")
-                a = st.number_input("Azuis lavadas", min_value=0, key=f"a_{row['ID_Lote']}")
-                fechar = st.form_submit_button("✔️ Fechar lote")
-
-            if fechar:
-                # Localiza a linha correta
-                cell = aba_lavagem.find(row["ID_Lote"])
-                r = cell.row
-                
-                # Cálculo da diferença
-                entrada = (row["Qtd_Pretas_Entrada"] or 0) + (row["Qtd_Azuis_Entrada"] or 0)
-                lavadas = p + a
-                diferenca = lavadas - entrada
-                
-                # Atualiza as colunas E até J (Pretas_Lav, Azuis_Lav, Dif, Status, Prev, Fim)
-                aba_lavagem.update(f"E{r}:J{r}", [[
-                    p, 
-                    a, 
-                    diferenca, 
-                    "Finalizado", 
-                    row["Previsao_Termin"], 
-                    datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                ]])
-
-                st.success(f"✅ Lote {row['ID_Lote']} finalizado!")
-                st.rerun()
+        aba_lavagem.append_ro
 
 # ======================================================
 # ABA 4 — GESTÃO
@@ -383,6 +352,7 @@ with tabs[4]:
     dispersao = round((campo / TOTAL) * 100, 1)
 
     st.metric("Em circulação", campo, f"{dispersao}%")
+
 
 
 
