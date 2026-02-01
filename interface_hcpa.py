@@ -349,27 +349,41 @@ with tabs[3]:
     st.subheader("📊 Indicadores")
 
     df_lav = carregar_lavagem()
+
+    # garante tipos numéricos
+    for c in ["Qtd_Pretas_Entrada", "Qtd_Azuis_Entrada",
+              "Qtd_Pretas_Lavadas", "Qtd_Azuis_Lavadas"]:
+        df_lav[c] = df_lav[c].fillna(0).astype(int)
+
     final = df_lav[df_lav["Status"] == "Finalizado"].copy()
 
-    final["Tempo"] = (
-        final["Fim_Lavagem"] - final["Inicio_Lavagem"]
-    ).dt.total_seconds() / 3600
+    # evita erro se ainda não houver lotes finalizados
+    if final.empty:
+        st.info("Ainda não há lotes finalizados para cálculo de indicadores.")
+    else:
+        final["Tempo"] = (
+            final["Fim_Lavagem"] - final["Inicio_Lavagem"]
+        ).dt.total_seconds() / 3600
 
-    backlog = (
-        df_lav["Qtd_Pretas_Entrada"].sum() + df_lav["Qtd_Azuis_Entrada"].sum()
-    ) - (
-        df_lav["Qtd_Pretas_Lavadas"].sum() + df_lav["Qtd_Azuis_Lavadas"].sum()
-    )
+        backlog = (
+            df_lav["Qtd_Pretas_Entrada"].sum() + df_lav["Qtd_Azuis_Entrada"].sum()
+        ) - (
+            df_lav["Qtd_Pretas_Lavadas"].sum() + df_lav["Qtd_Azuis_Lavadas"].sum()
+        )
 
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Backlog real", backlog)
-    c2.metric("Tempo médio (h)", round(final["Tempo"].mean(), 2))
-    c3.metric("Eficiência (%)",
-              round((final["Qtd_Pretas_Lavadas"].sum() + final["Qtd_Azuis_Lavadas"].sum())
-                    / max(1, final["Qtd_Pretas_Entrada"].sum() + final["Qtd_Azuis_Entrada"].sum()) * 100, 1))
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Backlog real (caixas sujas)", int(backlog))
+        c2.metric("Tempo médio de lavagem (h)", round(final["Tempo"].mean(), 2))
 
-    st.bar_chart(final.groupby("Turno")["Qtd_Pretas_Lavadas"].sum() +
-                 final.groupby("Turno")["Qtd_Azuis_Lavadas"].sum())
+        total_ent = final["Qtd_Pretas_Entrada"].sum() + final["Qtd_Azuis_Entrada"].sum()
+        total_lav = final["Qtd_Pretas_Lavadas"].sum() + final["Qtd_Azuis_Lavadas"].sum()
+        eficiencia = (total_lav / max(1, total_ent)) * 100
+
+        c3.metric("Eficiência (%)", round(eficiencia, 1))
+
+        # gráfico por turno
+        por_turno = final.groupby("Turno")[["Qtd_Pretas_Lavadas", "Qtd_Azuis_Lavadas"]].sum()
+        st.bar_chart(por_turno)
 
 # ======================================================
 # ABA 5 — INVENTÁRIO
@@ -388,6 +402,7 @@ with tabs[4]:
     dispersao = round((campo / TOTAL) * 100, 1)
 
     st.metric("Em circulação", campo, f"{dispersao}%")
+
 
 
 
