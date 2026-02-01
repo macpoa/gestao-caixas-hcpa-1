@@ -284,8 +284,6 @@ with tabs[2]:
 
     st.markdown("---")
 
-    st.success("✅ Lote iniciado")
-    st.rerun()
 
 
 # ======================================================
@@ -334,6 +332,7 @@ with tabs[4]:
     dispersao = round((campo / TOTAL) * 100, 1)
 
     st.metric("Em circulação", campo, f"{dispersao}%")
+
 
 
 
