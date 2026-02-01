@@ -240,11 +240,6 @@ with tabs[1]:
 # ======================================================
 # ABA 3 — LAVAGEM
 # ======================================================
-
-
-# ======================================================
-# ABA 3 — LAVAGEM
-# ======================================================
 with tabs[2]:
     st.subheader("🧼 Lavagem de Caixas")
 
@@ -294,16 +289,15 @@ with tabs[2]:
 
     with st.form("chegada_lavagem"):
         c1, c2 = st.columns(2)
-    with c1:
-        pretas_ent = st.number_input("Pretas que chegaram", min_value=0, step=1)
-    with c2:
-        azuis_ent = st.number_input("Azuis que chegaram", min_value=0, step=1)
+        with c1:
+            pretas_ent = st.number_input("Pretas que chegaram", min_value=0, step=1)
+        with c2:
+            azuis_ent = st.number_input("Azuis que chegaram", min_value=0, step=1)
 
-    turno = st.selectbox("Turno", ["Manhã", "Tarde", "Noite"])
-    enviar = st.form_submit_button("Registrar chegada")
+        turno = st.selectbox("Turno", ["Manhã", "Tarde", "Noite"])
+        enviar = st.form_submit_button("Registrar chegada")
 
     if enviar:
-    # AQUI você define 'agora'
         agora = datetime.now()
 
         aba_lavagem.append_row([
@@ -321,8 +315,9 @@ with tabs[2]:
             turno
         ])
 
-    st.success("✅ Lote iniciado")
-    st.rerun()
+        st.success("✅ Lote iniciado")
+        st.rerun()
+
 
 # ======================================================
 # ABA 4 — GESTÃO
@@ -370,6 +365,7 @@ with tabs[4]:
     dispersao = round((campo / TOTAL) * 100, 1)
 
     st.metric("Em circulação", campo, f"{dispersao}%")
+
 
 
 
