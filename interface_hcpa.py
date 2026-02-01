@@ -97,6 +97,27 @@ def carregar_alertas():
     df["Status"] = df["Status"].fillna("Aberto")
     df["Responsavel"] = df["Responsavel"].fillna("")
     return df
+# ======================================================
+# FUNÇÃO PARA CRIAR LOTE NA LAVAGEM
+# ======================================================
+def criar_lote_lavagem(df_setor, qtd_pretas, qtd_azuis):
+    agora = datetime.now()
+    id_lote = novo_id("LOT")
+
+    aba_lavagem.append_row([
+        id_lote,
+        agora.strftime("%Y-%m-%d %H:%M:%S"),  # Chegada_Lavagem
+        qtd_pretas,                           # Qtd_Pretas_Entrada
+        qtd_azuis,                            # Qtd_Azuis_Entrada
+        0,                                    # Qtd_Pretas_Lavadas
+        0,                                    # Qtd_Azuis_Lavadas
+        0,                                    # Diferenca
+        "Em Lavagem",
+        "",                                   # Previsao_Termino
+        "",                                   # Inicio_Lavagem
+        "",                                   # Fim_Lavagem
+        ""                                    # Turno
+    ])
 
 
 
@@ -185,21 +206,35 @@ with tabs[1]:
             with st.expander(f"📍 {setor} | {int(s['Tempo_Max'])} min | {int(s['Qtde'])} avisos"):
                 st.table(df_setor[["Urgencia", "Qtd_Pretas", "Qtd_Azuis", "Status", "Data_Hora"]])
 
+                # UM ÚNICO FORMULÁRIO POR SETOR
                 with st.form(f"coleta_{setor}"):
-                    resp = st.text_input("Cartão ponto (até 10 dígitos)", max_chars=10)
-                with st.form(f"coleta_{pretas}"):
-                    resp = st.text_input("Quantidade Caixas Pretas")
-                with st.form(f"coleta_{azuis}"):
-                    resp = st.text_input("Quantidade Caixas Azuis")
+                    cartao = st.text_input("Cartão ponto (até 10 dígitos)", max_chars=10)
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        qtd_pretas = st.number_input(
+                            "Quantidade de caixas pretas coletadas",
+                            min_value=0, step=1, key=f"pretas_{setor}"
+                        )
+                    with c2:
+                        qtd_azuis = st.number_input(
+                            "Quantidade de caixas azuis coletadas",
+                            min_value=0, step=1, key=f"azuis_{setor}"
+                        )
+
                     confirmar = st.form_submit_button("✔️ Confirmar coleta do setor")
-                    
+
                 if confirmar:
-                    if not resp.isdigit():
+                    if not cartao.isdigit():
                         st.error("Cartão ponto inválido")
                     else:
+                        # atualiza todos os alertas daquele setor para 'Coletado'
                         for id_alerta in df_setor["ID_Alerta"]:
-                            atualizar_alerta(id_alerta, "Coletado", resp)
-                        st.success("✅ Coleta registrada")
+                            atualizar_alerta(id_alerta, "Coletado", cartao)
+
+                        # cria o lote de lavagem com as quantidades informadas
+                        criar_lote_lavagem(df_setor, qtd_pretas, qtd_azuis)
+
+                        st.success("✅ Coleta registrada e lote enviado para lavagem")
                         st.rerun()
 
 # ======================================================
@@ -319,6 +354,7 @@ with tabs[4]:
     dispersao = round((campo / TOTAL) * 100, 1)
 
     st.metric("Em circulação", campo, f"{dispersao}%")
+
 
 
 
