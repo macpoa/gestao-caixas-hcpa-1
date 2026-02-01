@@ -139,7 +139,7 @@ with tabs[0]:
             datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             setor_url,
             urgencia,
-            setor_nome,
+            setor_url,
             pretas,
             azuis,
             skates,
@@ -315,6 +315,7 @@ with tabs[4]:
     dispersao = round((campo / TOTAL) * 100, 1)
 
     st.metric("Em circulação", campo, f"{dispersao}%")
+
 
 
 
