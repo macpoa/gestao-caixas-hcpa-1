@@ -284,10 +284,9 @@ with tabs[2]:
         )
 
     st.markdown("---")
-    # ---------- 3) FECHAR LOTES (informar caixas lavadas) ----------
+       # ---------- 3) FECHAR LOTES (informar caixas lavadas) ----------
     st.subheader("Finalizar lote de lavagem")
 
-    # Recarrega para garantir dados atualizados
     df_lav = carregar_lavagem()
     em_lavagem = df_lav[df_lav["Status"] == "Em Lavagem"].copy()
 
@@ -296,10 +295,10 @@ with tabs[2]:
     else:
         for _, row in em_lavagem.iterrows():
             with st.expander(f"🧺 Lote {row['ID_Lote']} | Turno: {row['Turno']}"):
-                st.write(
-                    f"Entrada: {int(row['Qtd_Pretas_Entrada'])} pretas, "
-                    f"{int(row['Qtd_Azuis_Entrada'])} azuis"
-                )
+                ent_pretas = int(row["Qtd_Pretas_Entrada"] or 0)
+                ent_azuis  = int(row["Qtd_Azuis_Entrada"] or 0)
+
+                st.write(f"Entrada: {ent_pretas} pretas, {ent_azuis} azuis")
 
                 with st.form(f"fechar_{row['ID_Lote']}"):
                     p = st.number_input(
@@ -313,29 +312,33 @@ with tabs[2]:
                     fechar = st.form_submit_button("✔️ Fechar lote")
 
                 if fechar:
-                    # Linha correspondente na planilha
                     cell = aba_lavagem.find(row["ID_Lote"])
                     r = cell.row
 
-                    entrada_total = int(row["Qtd_Pretas_Entrada"] or 0) + int(row["Qtd_Azuis_Entrada"] or 0)
-                    lavadas_total = int(p) + int(a)
+                    p_int = int(p)
+                    a_int = int(a)
+                    entrada_total = ent_pretas + ent_azuis
+                    lavadas_total = p_int + a_int
                     diferenca = lavadas_total - entrada_total
 
-                    # Atualiza colunas E–J: Pretas_Lavadas, Azuis_Lavadas, Diferenca, Status, Previsao_Termino, Fim_Lavagem
-                    aba_lavagem.update(
-                        f"E{r}:J{r}",
-                        [[
-                            int(p),
-                            int(a),
-                            int(diferenca),
-                            "Finalizado",
-                            row["Previsao_Termino"],  # pode ser "" se não usar
-                            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                        ]]
-                    )
+                    fim_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    prev_str = "" if pd.isna(row["Previsao_Termino"]) else str(row["Previsao_Termino"])
+
+                    # todos os valores convertidos para tipos simples (int/str)
+                    valores = [
+                        p_int,
+                        a_int,
+                        int(diferenca),
+                        "Finalizado",
+                        prev_str,
+                        fim_str,
+                    ]
+
+                    aba_lavagem.update(f"E{r}:J{r}", [valores])
 
                     st.success(f"✅ Lote {row['ID_Lote']} finalizado!")
                     st.rerun()
+
 
 
 
@@ -385,6 +388,7 @@ with tabs[4]:
     dispersao = round((campo / TOTAL) * 100, 1)
 
     st.metric("Em circulação", campo, f"{dispersao}%")
+
 
 
 
