@@ -304,7 +304,20 @@ with tabs[2]:
 
     if enviar:
         agora = datetime.now()
-        aba_lavagem.append_row
+aba_lavagem.append_row([
+    novo_id("LOT"),
+    agora.strftime("%Y-%m-%d %H:%M:%S"),  # Chegada_Lavagem
+    int(pretas_ent),                      # Qtd_Pretas_Entrada
+    int(azuis_ent),                       # Qtd_Azuis_Entrada
+    0,                                    # Qtd_Pretas_Lavadas
+    0,                                    # Qtd_Azuis_Lavadas
+    0,                                    # Diferenca
+    "Em Lavagem",
+    "",                                   # Previsao_Termino
+    "",                                   # Inicio_Lavagem
+    "",                                   # Fim_Lavagem
+    turno                                 # Turno
+])
 
 # ======================================================
 # ABA 4 — GESTÃO
@@ -352,6 +365,7 @@ with tabs[4]:
     dispersao = round((campo / TOTAL) * 100, 1)
 
     st.metric("Em circulação", campo, f"{dispersao}%")
+
 
 
 
