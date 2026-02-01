@@ -302,24 +302,24 @@ with tabs[2]:
     turno = st.selectbox("Turno", ["Manhã", "Tarde", "Noite"])
     enviar = st.form_submit_button("Registrar chegada")
 
-if enviar:
+    if enviar:
     # AQUI você define 'agora'
-    agora = datetime.now()
+        agora = datetime.now()
 
-    aba_lavagem.append_row([
-        novo_id("LOT"),
-        agora.strftime("%Y-%m-%d %H:%M:%S"),  # Chegada_Lavagem
-        int(pretas_ent),                      # Qtd_Pretas_Entrada
-        int(azuis_ent),                       # Qtd_Azuis_Entrada
-        0,                                    # Qtd_Pretas_Lavadas
-        0,                                    # Qtd_Azuis_Lavadas
-        0,                                    # Diferenca
-        "Em Lavagem",
-        "",                                   # Previsao_Termino
-        "",                                   # Inicio_Lavagem
-        "",                                   # Fim_Lavagem
-        turno
-    ])
+        aba_lavagem.append_row([
+            novo_id("LOT"),
+            agora.strftime("%Y-%m-%d %H:%M:%S"),  # Chegada_Lavagem
+            int(pretas_ent),                      # Qtd_Pretas_Entrada
+            int(azuis_ent),                       # Qtd_Azuis_Entrada
+            0,                                    # Qtd_Pretas_Lavadas
+            0,                                    # Qtd_Azuis_Lavadas
+            0,                                    # Diferenca
+            "Em Lavagem",
+            "",                                   # Previsao_Termino
+            "",                                   # Inicio_Lavagem
+            "",                                   # Fim_Lavagem
+            turno
+        ])
 
     st.success("✅ Lote iniciado")
     st.rerun()
@@ -370,6 +370,7 @@ with tabs[4]:
     dispersao = round((campo / TOTAL) * 100, 1)
 
     st.metric("Em circulação", campo, f"{dispersao}%")
+
 
 
 
