@@ -304,7 +304,7 @@ with tabs[2]:
 
     if enviar:
         agora = datetime.now()
-        aba_lavagem.append_ro
+        aba_lavagem.append_row
 
 # ======================================================
 # ABA 4 — GESTÃO
@@ -352,6 +352,7 @@ with tabs[4]:
     dispersao = round((campo / TOTAL) * 100, 1)
 
     st.metric("Em circulação", campo, f"{dispersao}%")
+
 
 
 
