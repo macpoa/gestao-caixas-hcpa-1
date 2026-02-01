@@ -292,7 +292,7 @@ with tabs[2]:
     # ---------- 3) REGISTRAR NOVA CHEGADA (opcional/manual) ----------
     st.subheader("Registrar manualmente um novo lote que chegou à lavagem")
 
-   with st.form("chegada_lavagem"):
+    with st.form("chegada_lavagem"):
     c1, c2 = st.columns(2)
     with c1:
         pretas_ent = st.number_input("Pretas que chegaram", min_value=0, step=1)
@@ -370,6 +370,7 @@ with tabs[4]:
     dispersao = round((campo / TOTAL) * 100, 1)
 
     st.metric("Em circulação", campo, f"{dispersao}%")
+
 
 
 
