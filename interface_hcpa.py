@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 st.set_page_config(page_title="Logística de Caixas HCPA", layout="wide")
 
 NOME_PLANILHA = "Gestao_Caixas_HCPA"
-planilha = client.open(NOME_PLANILHA)
+
 
 # nomes das abas na planilha
 ABA_ALERTAS   = "db_alertas"      # cuidado: na planilha está db_alerta (sem s)
@@ -333,6 +333,7 @@ with tabs[4]:
     dispersao = round((campo / TOTAL) * 100, 1)
 
     st.metric("Em circulação", campo, f"{dispersao}%")
+
 
 
 
