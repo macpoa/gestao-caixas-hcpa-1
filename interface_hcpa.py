@@ -242,8 +242,37 @@ with tabs[1]:
 # ======================================================
 
 
+# ======================================================
+# ABA 3 — LAVAGEM
+# ======================================================
 with tabs[2]:
     st.subheader("🧼 Lavagem de Caixas")
+
+    # carregar todos os lotes
+    df_lav = carregar_lavagem()
+
+    # mostrar painel de lotes em lavagem
+    em_lavagem = df_lav[df_lav["Status"] == "Em Lavagem"].copy()
+
+    if em_lavagem.empty:
+        st.info("Nenhum lote em lavagem no momento.")
+    else:
+        st.write("Lotes em lavagem:")
+        st.table(
+            em_lavagem[
+                [
+                    "ID_Lote",
+                    "Chegada_Lavagem",
+                    "Qtd_Pretas_Entrada",
+                    "Qtd_Azuis_Entrada",
+                    "Status",
+                ]
+            ]
+        )
+
+    # (aqui você mantém o restante do código de registrar chegada manual,
+    # ou decide se vai usar apenas os lotes gerados pela expedição)
+
 
     # REGISTRAR CHEGADA
     with st.form("chegada_lavagem"):
@@ -354,6 +383,7 @@ with tabs[4]:
     dispersao = round((campo / TOTAL) * 100, 1)
 
     st.metric("Em circulação", campo, f"{dispersao}%")
+
 
 
 
