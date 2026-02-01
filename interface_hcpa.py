@@ -189,7 +189,7 @@ with tabs[1]:
                     resp = st.text_input("Cartão ponto (até 10 dígitos)", max_chars=10)
                 with st.form(f"coleta_{pretas}"):
                     resp = st.text_input("Quantidade Caixas Pretas")
-                with st.form(f"coleta_{pretas}"):
+                with st.form(f"coleta_{azuis}"):
                     resp = st.text_input("Quantidade Caixas Azuis")
                     confirmar = st.form_submit_button("✔️ Confirmar coleta do setor")
                     
@@ -319,6 +319,7 @@ with tabs[4]:
     dispersao = round((campo / TOTAL) * 100, 1)
 
     st.metric("Em circulação", campo, f"{dispersao}%")
+
 
 
 
