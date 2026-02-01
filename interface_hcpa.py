@@ -292,32 +292,37 @@ with tabs[2]:
     # ---------- 3) REGISTRAR NOVA CHEGADA (opcional/manual) ----------
     st.subheader("Registrar manualmente um novo lote que chegou à lavagem")
 
-    with st.form("chegada_lavagem"):
-        c1, c2 = st.columns(2)
-        with c1:
-            pretas_ent = st.number_input("Pretas que chegaram", min_value=0, step=1)
-        with c2:
-            azuis_ent = st.number_input("Azuis que chegaram", min_value=0, step=1)
+   with st.form("chegada_lavagem"):
+    c1, c2 = st.columns(2)
+    with c1:
+        pretas_ent = st.number_input("Pretas que chegaram", min_value=0, step=1)
+    with c2:
+        azuis_ent = st.number_input("Azuis que chegaram", min_value=0, step=1)
 
-        turno = st.selectbox("Turno", ["Manhã", "Tarde", "Noite"])
-        enviar = st.form_submit_button("Registrar chegada")
+    turno = st.selectbox("Turno", ["Manhã", "Tarde", "Noite"])
+    enviar = st.form_submit_button("Registrar chegada")
 
-    if enviar:
-        agora = datetime.now()
-aba_lavagem.append_row([
-    novo_id("LOT"),
-    agora.strftime("%Y-%m-%d %H:%M:%S"),  # Chegada_Lavagem
-    int(pretas_ent),                      # Qtd_Pretas_Entrada
-    int(azuis_ent),                       # Qtd_Azuis_Entrada
-    0,                                    # Qtd_Pretas_Lavadas
-    0,                                    # Qtd_Azuis_Lavadas
-    0,                                    # Diferenca
-    "Em Lavagem",
-    "",                                   # Previsao_Termino
-    "",                                   # Inicio_Lavagem
-    "",                                   # Fim_Lavagem
-    turno                                 # Turno
-])
+if enviar:
+    # AQUI você define 'agora'
+    agora = datetime.now()
+
+    aba_lavagem.append_row([
+        novo_id("LOT"),
+        agora.strftime("%Y-%m-%d %H:%M:%S"),  # Chegada_Lavagem
+        int(pretas_ent),                      # Qtd_Pretas_Entrada
+        int(azuis_ent),                       # Qtd_Azuis_Entrada
+        0,                                    # Qtd_Pretas_Lavadas
+        0,                                    # Qtd_Azuis_Lavadas
+        0,                                    # Diferenca
+        "Em Lavagem",
+        "",                                   # Previsao_Termino
+        "",                                   # Inicio_Lavagem
+        "",                                   # Fim_Lavagem
+        turno
+    ])
+
+    st.success("✅ Lote iniciado")
+    st.rerun()
 
 # ======================================================
 # ABA 4 — GESTÃO
@@ -365,6 +370,7 @@ with tabs[4]:
     dispersao = round((campo / TOTAL) * 100, 1)
 
     st.metric("Em circulação", campo, f"{dispersao}%")
+
 
 
 
