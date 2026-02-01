@@ -12,7 +12,7 @@ st.set_page_config(page_title="Logística de Caixas HCPA", layout="wide")
 NOME_PLANILHA = "Gestao_Caixas_HCPA"
 
 # nomes das abas na planilha
-ABA_ALERTAS   = "db_alerta"      # cuidado: na planilha está db_alerta (sem s)
+ABA_ALERTAS   = "db_alertas"      # cuidado: na planilha está db_alerta (sem s)
 ABA_LAVAGEM   = "db_lavagem"
 ABA_SETORES   = "db_setores"
 ABA_HISTORICO = "db_Historico"   # respeitar maiúsculas/minúsculas
@@ -314,6 +314,7 @@ with tabs[4]:
     dispersao = round((campo / TOTAL) * 100, 1)
 
     st.metric("Em circulação", campo, f"{dispersao}%")
+
 
 
 
