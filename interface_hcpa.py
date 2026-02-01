@@ -15,7 +15,7 @@ NOME_PLANILHA = "Gestao_Caixas_HCPA"
 ABA_ALERTAS   = "db_alertas"      # cuidado: na planilha está db_alerta (sem s)
 ABA_LAVAGEM   = "db_lavagem"
 ABA_SETORES   = "db_setores"
-ABA_HISTORICO = "db_Historico"   # respeitar maiúsculas/minúsculas
+ABA_HISTORICO = "db_historico"   # respeitar maiúsculas/minúsculas
 
 # colunas esperadas em cada aba
 COL_ALERTAS = [
@@ -139,6 +139,7 @@ with tabs[0]:
             datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             setor_url,
             urgencia,
+            setor_nome,
             pretas,
             azuis,
             skates,
@@ -314,6 +315,7 @@ with tabs[4]:
     dispersao = round((campo / TOTAL) * 100, 1)
 
     st.metric("Em circulação", campo, f"{dispersao}%")
+
 
 
 
