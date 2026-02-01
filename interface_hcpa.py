@@ -391,18 +391,33 @@ with tabs[3]:
 with tabs[4]:
     st.subheader("📋 Inventário por Exclusão")
 
-    TOTAL = 1000
-    prontas = st.number_input("Prontas", 0)
-    separacao = st.number_input("Em separação", 0)
-    entrega = st.number_input("Aguardando entrega", 0)
-    lavagem = st.number_input("Na lavagem", 0)
+    TOTAL = 1000  # total de caixas existentes (ajuste se necessário)
 
-    internas = prontas + separacao + entrega + lavagem
+    # calcula automaticamente o que está na lavagem
+    df_lav = carregar_lavagem()
+    df_lav[["Qtd_Pretas_Entrada", "Qtd_Azuis_Entrada",
+            "Qtd_Pretas_Lavadas", "Qtd_Azuis_Lavadas"]] = \
+        df_lav[["Qtd_Pretas_Entrada", "Qtd_Azuis_Entrada",
+                "Qtd_Pretas_Lavadas", "Qtd_Azuis_Lavadas"]].fillna(0).astype(int)
+
+    na_lavagem = (
+        df_lav["Qtd_Pretas_Entrada"].sum() + df_lav["Qtd_Azuis_Entrada"].sum()
+        - df_lav["Qtd_Pretas_Lavadas"].sum() - df_lav["Qtd_Azuis_Lavadas"].sum()
+    )
+
+    c1, c2 = st.columns(2)
+    with c1:
+        prontas = st.number_input("Prontas (em estoque limpo)", min_value=0, step=1)
+        separacao = st.number_input("Em separação", min_value=0, step=1)
+    with c2:
+        entrega = st.number_input("Aguardando entrega", min_value=0, step=1)
+        st.number_input("Na lavagem (calculado)", value=int(na_lavagem), disabled=True)
+
+    internas = prontas + separacao + entrega + int(na_lavagem)
     campo = TOTAL - internas
     dispersao = round((campo / TOTAL) * 100, 1)
 
-    st.metric("Em circulação", campo, f"{dispersao}%")
-
+    st.metric("Em circulação (fora expedição/lavagem/estoque)", campo, f"{dispersao}%")
 
 
 
