@@ -172,21 +172,20 @@ with tabs[0]:
         st.success("✅ Alerta enviado")
 
 # ======================================================
-# ABA 2 — EXPEDIÇÃO (POR SETOR)
+# ABA 2 — EXPEDIÇÃO (POR SETOR) - VERSÃO PILOTO 
 # ======================================================
 with tabs[1]:
-    st.subheader("🚚 Ordem sugerida de coleta por setor")
+    st.subheader("🚚 Gestão de Coletas por Setor")
 
     df = carregar_alertas()
+    # Filtra apenas o que não foi "Coletado" ainda
     ativos = df[df["Status"].isin(STATUS_ATIVOS)].copy()
 
     if ativos.empty:
-        st.info("Nenhum alerta ativo")
+        st.info("Nenhum alerta pendente. Bom trabalho!")
     else:
-        ativos["Tempo_Aberto"] = (
-            datetime.now() - ativos["Data_Hora"]
-        ).dt.total_seconds().fillna(0) / 60
-
+        # Cálculo de tempo e pesos
+        ativos["Tempo_Aberto"] = (datetime.now() - ativos["Data_Hora"]).dt.total_seconds().fillna(0) / 60
         ativos["Peso"] = ativos["Urgencia"].map(MAPA_URGENCIA).fillna(1)
 
         resumo = (
@@ -204,40 +203,51 @@ with tabs[1]:
             setor = s["ID_Setor"]
             df_setor = ativos[ativos["ID_Setor"] == setor]
 
-            with st.expander(f"📍 {setor} | {int(s['Tempo_Max'])} min | {int(s['Qtde'])} avisos"):
+            # Cabeçalho do Card com cor baseada na urgência máxima
+            cor_card = "🔴" if s['Peso_Max'] == 3 else "🟡" if s['Peso_Max'] == 2 else "🟢"
+            
+            with st.expander(f"{cor_card} {setor} | Espera: {int(s['Tempo_Max'])} min | {int(s['Qtde'])} chamados"):
                 st.table(df_setor[["Urgencia", "Qtd_Pretas", "Qtd_Azuis", "Status", "Data_Hora"]])
 
-                # UM ÚNICO FORMULÁRIO POR SETOR
                 with st.form(f"coleta_{setor}"):
-                    cartao = st.text_input("Cartão ponto (até 10 dígitos)", max_chars=10)
+                    cartao = st.text_input("Cartão ponto do transportador", max_chars=10)
+                    
+                    # --- LÓGICA DE COLETA PARCIAL VS TOTAL ---
+                    tipo_coleta = st.radio(
+                        "Situação da coleta no setor:",
+                        ["Total (Limpar chamados)", "Parcial (Manter chamados ativos)"],
+                        index=0,
+                        horizontal=True,
+                        help="Total: O setor ficou limpo. Parcial: Ainda ficaram caixas lá para uma próxima viagem."
+                    )
+                    
                     c1, c2 = st.columns(2)
                     with c1:
-                        qtd_pretas = st.number_input(
-                            "Quantidade de caixas pretas coletadas",
-                            min_value=0, step=1, key=f"pretas_{setor}"
-                        )
+                        qtd_pretas = st.number_input("Qtd. Pretas coletadas agora", min_value=0, step=1, key=f"p_{setor}")
                     with c2:
-                        qtd_azuis = st.number_input(
-                            "Quantidade de caixas azuis coletadas",
-                            min_value=0, step=1, key=f"azuis_{setor}"
-                        )
+                        qtd_azuis = st.number_input("Qtd. Azuis coletadas agora", min_value=0, step=1, key=f"a_{setor}")
 
-                    confirmar = st.form_submit_button("✔️ Confirmar coleta do setor")
+                    confirmar = st.form_submit_button("✔️ Confirmar e Enviar para Lavagem")
 
                 if confirmar:
                     if not cartao.isdigit():
-                        st.error("Cartão ponto inválido")
+                        st.error("Por favor, informe um cartão ponto válido (apenas números).")
+                    elif qtd_pretas == 0 and qtd_azuis == 0:
+                        st.warning("Informe a quantidade de caixas que está levando para a lavagem.")
                     else:
-                        # atualiza todos os alertas daquele setor para 'Coletado'
-                        for id_alerta in df_setor["ID_Alerta"]:
-                            atualizar_alerta(id_alerta, "Coletado", cartao)
+                        with st.spinner("Sincronizando com a planilha..."):
+                            # 1. Define o novo status
+                            novo_status = "Coletado" if "Total" in tipo_coleta else "Em Coleta"
+                            
+                            # 2. Atualiza os alertas no Google Sheets
+                            for id_alerta in df_setor["ID_Alerta"]:
+                                atualizar_alerta(id_alerta, novo_status, cartao)
 
-                        # cria o lote de lavagem com as quantidades informadas
-                        criar_lote_lavagem(df_setor, qtd_pretas, qtd_azuis)
+                            # 3. Cria o lote na lavagem (sempre cria, pois a carga saiu do setor)
+                            criar_lote_lavagem(df_setor, qtd_pretas, qtd_azuis)
 
-                        st.success("✅ Coleta registrada e lote enviado para lavagem")
-                        st.rerun()
-
+                            st.success(f"✅ Coleta {novo_status} registrada! Lote enviado para lavagem.")
+                            st.rerun()
 # ======================================================
 # ABA 3 — LAVAGEM
 # ======================================================
